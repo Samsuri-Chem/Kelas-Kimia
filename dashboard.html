@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - KelasGuru</title>
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjU2IDU2TDU2IDE2Mi41VjE4NEwyNTYgMjkwLjVMNDU2IDE4NFYxNjIuNUwyNTYgNTZaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTQ1NiAyMDhMNDEzIDIyOFYzMTBDMzkwLjUgMzQ0LjUgMzUxIDM3NiAyNTYgMzc2QzE2MSAzNzYgMTIxLjUgMzQ0LjUgOTkgMzEwVjIyOEw1NiAyMDhWMzM2Qzg3LjUgMzkwLjUgMTU4IDQ1NiAyNTYgNDU2QzM1NCA0NTYgNDI0LjUgMzkwLjUgNDU2IDMzNlYyMDhaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTM2OCAyNDJWMzA2LjVMMzk2IDI4MlYyMjNMMzY4IDI0MloiIGZpbGw9IiMzNjg1ZmYiLz48cGF0aCBkPSJNMTY5IDIzMkwxNTEgMjI4LjVMMTQzIDI1MkwxNjAgMjUwTDE2OSAyMzJaIiBzdHJva2U9IiMzNjg1ZmYiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE2OSAyMzJMMjI1IDI0NUwyOTYgMjQwLjVMMzQwIDIxMiIgc3Ryb2tlPSIjMzY4NWZmIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 84% 4.9%;
+            --primary: 221.2 83.2% 53.3%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 221.2 83.2% 53.3%;
+            --radius: 0.5rem;
+        }
+        
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --popover: 222.2 84% 4.9%;
+            --popover-foreground: 210 40% 98%;
+            --primary: 217.2 91.2% 59.8%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 224.3 76.3% 48%;
+        }
+        
+        * {
+            @apply border-border;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1rem;
+        }
+        
+        @media (min-width: 640px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        /* Skeleton loading animation */
+        .skeleton {
+            animation: skeleton-loading 1.5s linear infinite alternate;
+            border-radius: 0.25rem;
+        }
+        
+        @keyframes skeleton-loading {
+            0% {
+                background-color: hsl(var(--muted));
+            }
+            100% {
+                background-color: hsl(var(--accent));
+            }
+        }
+        
+        /* Card styling */
+        .shadcn-card {
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border));
+            background-color: hsl(var(--card));
+            color: hsl(var(--card-foreground));
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .stat-card {
+            transition: all 0.2s ease-in-out;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Event item styling */
+        .event-item {
+            transition: all 0.2s ease;
+            padding: 0.625rem;
+            border-radius: var(--radius);
+            margin-bottom: 0.375rem;
+        }
+        
+        .event-item:hover {
+            background-color: hsl(var(--muted));
+        }
+        
+        /* Badge styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            font-weight: 500;
+            line-height: 1;
+            font-size: 0.75rem;
+            height: 1.25rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        .badge-secondary {
+            background-color: hsl(var(--secondary));
+            color: hsl(var(--secondary-foreground));
+        }
+        
+        /* Button styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1;
+            height: 2rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-ghost {
+            background-color: transparent;
+            color: hsl(var(--primary));
+        }
+        
+        .btn-ghost:hover {
+            background-color: hsl(var(--accent));
+        }
+        
+        /* Improved scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: hsl(var(--muted));
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: hsl(var(--muted-foreground) / 0.4);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: hsl(var(--muted-foreground) / 0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar container -->
+        <div id="sidebar-container" class="w-64 bg-card shrink-0 hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4 md:p-6">
+                <div class="space-y-2 mb-6">
+                    <h2 class="text-2xl font-medium tracking-tight">Dashboard</h2>
+                    <p class="text-sm text-muted-foreground">Selamat datang di panel administrasi guru Anda</p>
+                </div>
+                
+                <!-- Dashboard tabs for lazy loading -->
+                <div class="border-b mb-6">
+                    <div class="flex flex-wrap -mb-px">
+                        <button class="lazy-tab mr-2 inline-block p-4 border-b-2 rounded-t-lg text-foreground hover:text-primary hover:border-primary transition-colors" data-tab-id="dashboard-overview" data-active="true">
+                            Overview
+                        </button>
+                        <button class="lazy-tab mr-2 inline-block p-4 border-b-2 rounded-t-lg text-foreground hover:text-primary hover:border-primary transition-colors" data-tab-id="dashboard-recent-activity">
+                            Aktivitas Terbaru
+                        </button>
+                        <button class="lazy-tab mr-2 inline-block p-4 border-b-2 rounded-t-lg text-foreground hover:text-primary hover:border-primary transition-colors" data-tab-id="dashboard-upcoming">
+                            Jadwal Mendatang
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Dashboard content sections -->
+                <div id="dashboard-overview" class="lazy-tab-content">
+                    <!-- Dashboard stats grid -->
+                    <div class="dashboard-grid mb-6">
+                    <!-- Class Count -->
+                        <div class="stat-card shadcn-card">
+                            <div class="p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="bg-blue-100 p-2 rounded-full">
+                                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                                        <h3 class="text-base font-medium">Kelas</h3>
+                                    </div>
+                                    <span class="badge badge-secondary">Total</span>
+                        </div>
+                                <div id="kelas-count-skeleton" class="skeleton h-8 w-16 mb-3"></div>
+                                <div id="kelas-count-container" class="hidden">
+                        <div class="text-3xl font-bold mb-2" id="kelas-count">-</div>
+                                </div>
+                                <a href="classes.html" class="text-sm text-primary hover:underline flex items-center mt-3 transition-colors">
+                            Lihat semua kelas
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                            </div>
+                    </div>
+                    
+                    <!-- Student Count -->
+                        <div class="stat-card shadcn-card">
+                            <div class="p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="bg-green-100 p-2 rounded-full">
+                                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                            </div>
+                                        <h3 class="text-base font-medium">Siswa</h3>
+                                    </div>
+                                    <span class="badge badge-secondary">Total</span>
+                        </div>
+                                <div id="siswa-count-skeleton" class="skeleton h-8 w-16 mb-3"></div>
+                                <div id="siswa-count-container" class="hidden">
+                        <div class="text-3xl font-bold mb-2" id="siswa-count">-</div>
+                                </div>
+                                <a href="students.html" class="text-sm text-primary hover:underline flex items-center mt-3 transition-colors">
+                            Lihat semua siswa
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                            </div>
+                    </div>
+                    
+                    <!-- Assignment Count -->
+                        <div class="stat-card shadcn-card">
+                            <div class="p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="bg-purple-100 p-2 rounded-full">
+                                            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                            </div>
+                                        <h3 class="text-base font-medium">Tugas</h3>
+                                    </div>
+                                    <span class="badge badge-secondary">Total</span>
+                        </div>
+                                <div id="tugas-count-skeleton" class="skeleton h-8 w-16 mb-3"></div>
+                                <div id="tugas-count-container" class="hidden">
+                        <div class="text-3xl font-bold mb-2" id="tugas-count">-</div>
+                                </div>
+                                <a href="assignments.html" class="text-sm text-primary hover:underline flex items-center mt-3 transition-colors">
+                            Lihat semua tugas
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="dashboard-recent-activity" class="lazy-tab-content hidden">
+                    <div id="activity-container" class="shadcn-card p-5">
+                        <h3 class="text-lg font-medium mb-4">Aktivitas Terbaru</h3>
+                        <div id="activity-loading" class="space-y-3">
+                            <div class="skeleton h-12 w-full rounded-md"></div>
+                            <div class="skeleton h-12 w-full rounded-md"></div>
+                            <div class="skeleton h-12 w-full rounded-md"></div>
+                        </div>
+                        <div id="activity-content" class="hidden space-y-2">
+                            <!-- Activity content will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="dashboard-upcoming" class="lazy-tab-content hidden">
+                    <div id="upcoming-container" class="shadcn-card p-5">
+                        <h3 class="text-lg font-medium mb-4">Jadwal Mendatang</h3>
+                        <div id="upcoming-loading" class="space-y-3">
+                            <div class="skeleton h-16 w-full rounded-md"></div>
+                            <div class="skeleton h-16 w-full rounded-md"></div>
+                        </div>
+                        <div id="upcoming-content" class="hidden space-y-3">
+                            <!-- Upcoming content will be loaded here -->
+                        </div>
+                        <div id="upcoming-events" class="space-y-3">
+                            <!-- Upcoming events will be loaded here -->
+                        </div>
+                        <div id="gamification-skeleton" class="skeleton h-8 w-16 mb-3"></div>
+                        <div id="gamification-overview">
+                            <!-- Gamification data will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="js/pagination.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize layout
+            initLayout();
+            updatePageTitle('Dashboard');
+            
+            // Add custom styling for active tabs
+            const tabStyle = document.createElement('style');
+            tabStyle.textContent = `
+                .lazy-tab {
+                    border-bottom-color: transparent;
+                    color: hsl(var(--muted-foreground));
+                    transition: color 0.3s, border-color 0.3s;
+                }
+                
+                .lazy-tab:hover {
+                    color: hsl(var(--foreground));
+                    border-bottom-color: hsl(var(--muted-foreground));
+                }
+                
+                .lazy-tab[data-active="true"] {
+                    color: hsl(var(--primary)) !important;
+                    border-bottom-color: hsl(var(--primary)) !important;
+                    font-weight: 600;
+                }
+                
+                .lazy-tab[data-active="false"] {
+                    border-bottom-color: transparent;
+                }
+            `;
+            document.head.appendChild(tabStyle);
+            
+            // Initialize tabs for lazy loading
+            const lazyTabs = new LazyTabs({
+                tabsSelector: '.lazy-tab',
+                contentSelector: '.lazy-tab-content',
+                onTabChange: loadTabContent
+            });
+            
+            // Load data in parallel for better performance
+            try {
+                await Promise.all([
+                    loadStatistics(),
+                    loadEvents(),
+                    loadGamificationOverview()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data dashboard');
+            }
+        });
+        
+        // Load statistics data (kelas, siswa, tugas)
+        async function loadStatistics() {
+            try {
+                // Create an array of promises for all API calls
+                const promises = [
+                    callApi('getKelas'),  // CORS-compliant: Use callApi instead of getAllData
+                    callApi('getSiswa'),  // CORS-compliant: Using URLSearchParams under the hood
+                    callApi('getTugas')   // CORS-compliant: No custom headers
+                ];
+                
+                // Wait for all promises to resolve
+                const [kelasResponse, siswaResponse, tugasResponse] = await Promise.all(promises);
+                
+                // Update class count
+                if (kelasResponse.success) {
+                    document.getElementById('kelas-count').textContent = kelasResponse.data.length;
+                    document.getElementById('kelas-count-skeleton').classList.add('hidden');
+                    document.getElementById('kelas-count-container').classList.remove('hidden');
+                }
+                
+                // Update student count
+                if (siswaResponse.success) {
+                    document.getElementById('siswa-count').textContent = siswaResponse.data.length;
+                    document.getElementById('siswa-count-skeleton').classList.add('hidden');
+                    document.getElementById('siswa-count-container').classList.remove('hidden');
+                }
+                
+                // Update assignment count
+                if (tugasResponse.success) {
+                    document.getElementById('tugas-count').textContent = tugasResponse.data.length;
+                    document.getElementById('tugas-count-skeleton').classList.add('hidden');
+                    document.getElementById('tugas-count-container').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                
+                // Show error in counters
+                document.getElementById('kelas-count').textContent = '-';
+                document.getElementById('siswa-count').textContent = '-';
+                document.getElementById('tugas-count').textContent = '-';
+                
+                // Hide skeletons
+                document.getElementById('kelas-count-skeleton').classList.add('hidden');
+                document.getElementById('siswa-count-skeleton').classList.add('hidden');
+                document.getElementById('tugas-count-skeleton').classList.add('hidden');
+                
+                // Show containers
+                document.getElementById('kelas-count-container').classList.remove('hidden');
+                document.getElementById('siswa-count-container').classList.remove('hidden');
+                document.getElementById('tugas-count-container').classList.remove('hidden');
+            }
+        }
+        
+        // Load events
+        async function loadEvents() {
+            try {
+                console.log('Loading upcoming events...');
+                
+                // Show loading skeleton
+                const skeleton = document.getElementById('events-skeleton');
+                if (skeleton) skeleton.classList.remove('hidden');
+                
+                // Check if API_URL is defined
+                if (typeof API_URL === 'undefined' || !API_URL) {
+                    console.error('API_URL is not defined');
+                    if (typeof window !== 'undefined' && window.API_URL) {
+                        console.log('Using window.API_URL instead');
+                        API_URL = window.API_URL;
+                    } else {
+                        console.log('Falling back to default API URL');
+                        API_URL = 'https://script.google.com/macros/s/AKfycbzmzrbEGpVZxm4NskhdZ_WOh41-GKeIn1ryxg1jkxHIfGtG5vHDKzN49J5oYx1amu_iRQ/exec';
+                    }
+                }
+                
+                console.log('Using API URL for events:', API_URL);
+                
+                // CORS-compliant: Use URLSearchParams instead of JSON
+                const formData = new URLSearchParams();
+                // Try both getEvent and getEvents since the naming might vary
+                formData.append('action', 'getEvents');
+                
+                console.log('Making event API call with params:', formData.toString());
+                
+                // CORS-compliant: Simple POST request with no custom headers
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                    // CORS-compliant: No Content-Type or other custom headers
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Events API response:', result);
+                
+                // If first attempt failed, try alternative action name
+                if (!result.success) {
+                    console.log('First attempt failed, trying alternative action name "getEvent"');
+                    const altFormData = new URLSearchParams();
+                    altFormData.append('action', 'getEvent');
+                    
+                    const altResponse = await fetch(API_URL, {
+                        method: 'POST',
+                        body: altFormData
+                    });
+                    
+                    if (!altResponse.ok) {
+                        throw new Error(`HTTP error: ${altResponse.status}`);
+                    }
+                    
+                    const altResult = await altResponse.json();
+                    console.log('Events alternative API response:', altResult);
+                    
+                    // If second attempt succeeded, use that result
+                    if (altResult.success) {
+                        // Hide skeleton after data is loaded
+                        if (skeleton) skeleton.classList.add('hidden');
+                        renderUpcomingEvents(altResult.data, true);
+                        return;
+                    }
+                }
+                
+                // Hide skeleton after data is loaded
+                if (skeleton) skeleton.classList.add('hidden');
+                
+                if (result.success) {
+                    renderUpcomingEvents(result.data, true);
+                } else {
+                    console.error('Invalid events response format:', result);
+                    document.getElementById('upcoming-events').innerHTML = `
+                        <div class="text-center text-muted-foreground py-4">
+                            <p class="text-sm">Gagal memuat event mendatang</p>
+                            <button class="btn btn-ghost mt-2 text-sm" onclick="retryLoadEvents()">Coba Lagi</button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading events:', error);
+                
+                // Hide skeleton if there's an error
+                const skeleton = document.getElementById('events-skeleton');
+                if (skeleton) skeleton.classList.add('hidden');
+                
+                document.getElementById('upcoming-events').innerHTML = `
+                    <div class="text-center text-muted-foreground py-4">
+                        <p class="text-sm">Gagal memuat event mendatang</p>
+                        <button class="btn btn-ghost mt-2 text-sm" onclick="retryLoadEvents()">Coba Lagi</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Make retryLoadEvents function available globally
+        window.retryLoadEvents = function() {
+            console.log('Retrying loading events...');
+            loadEvents();
+        };
+        
+        function renderUpcomingEvents(events, showAll = false) {
+            const container = document.getElementById('upcoming-events');
+            if (!container) {
+                console.error('Element with ID "upcoming-events" not found');
+                return;
+            }
+            console.log('Rendering events with data:', events);
+            
+            if (!events || events.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted-foreground py-6">
+                        <p class="text-sm">Tidak ada event yang akan datang</p>
+                </div>
+                `;
+                return;
+            }
+            
+            try {
+                // Log each event's date fields to troubleshoot
+                console.log('Event date fields:');
+                events.forEach((event, index) => {
+                    console.log(`Event ${index}: tanggal=${event.tanggal}, date=${event.date}, created_at=${event.created_at}, timestamp=${event.timestamp}`);
+                });
+            
+            // Sort events by date (ascending)
+                events.sort((a, b) => {
+                    // Try multiple date fields to ensure we get a valid date
+                    const getDate = (event) => {
+                        if (event.tanggal) return new Date(event.tanggal);
+                        if (event.date) return new Date(event.date);
+                        if (event.timestamp) return new Date(event.timestamp);
+                        if (event.created_at) return new Date(event.created_at);
+                        return new Date(0); // fallback
+                    };
+                    
+                    return getDate(a) - getDate(b);
+                });
+                
+                // Filter only upcoming events (today and future) if not showing all
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+                let displayEvents = events;
+                
+                if (!showAll) {
+                    displayEvents = events.filter(event => {
+                        // Try different possible date field names
+                        const dateField = event.tanggal || event.date || event.timestamp || event.created_at;
+                        if (!dateField) return true; // Include events without dates rather than filtering them out
+                        
+                        try {
+                            const eventDate = new Date(dateField);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate >= today;
+                        } catch (e) {
+                            console.warn('Error parsing date:', e);
+                            return true; // Include events with unparseable dates
+                        }
+                    });
+                }
+                
+                console.log(`Found ${displayEvents.length} events to display`);
+                
+                // Limit to 5 events
+                const upcomingEvents = displayEvents.slice(0, 5);
+                
+                if (upcomingEvents.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted-foreground py-6">
+                            <p class="text-sm">Tidak ada event yang akan datang</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="space-y-3">';
+                upcomingEvents.forEach(event => {
+                    // Get date from any available date field
+                    const dateField = event.tanggal || event.date || event.timestamp || event.created_at;
+                    const eventDate = dateField ? new Date(dateField) : null;
+                    
+                    let dateLabel = eventDate ? formatEventDate(dateField) : 'Tanggal tidak tersedia';
+                    let dateBadgeClass = "bg-blue-100 text-blue-800";
+                    
+                    if (eventDate) {
+                        if (isDateToday(eventDate)) {
+                            dateLabel = "Hari Ini";
+                            dateBadgeClass = "bg-green-100 text-green-800";
+                        } else if (isDateTomorrow(eventDate)) {
+                            dateLabel = "Besok";
+                            dateBadgeClass = "bg-purple-100 text-purple-800";
+                        }
+                    }
+                    
+                    // Try different field names for event name and description
+                    const eventName = event.nama || event.name || event.title || event.judul || 'Event tanpa nama';
+                    const eventDesc = event.deskripsi || event.description || event.desc || event.keterangan || 'Tidak ada deskripsi';
+                    
+                    html += `
+                        <div class="event-item">
+                            <div class="flex items-start">
+                                <div class="${dateBadgeClass} px-2 py-1 rounded text-center min-w-[60px] mr-3">
+                                    <div class="text-xs font-medium">${dateLabel}</div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-sm">${eventName}</h4>
+                                    <p class="text-sm text-muted-foreground mt-1 line-clamp-1">${eventDesc}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error in renderUpcomingEvents:', error);
+                container.innerHTML = `
+                    <div class="text-center text-muted-foreground py-4">
+                        <p class="text-sm">Terjadi kesalahan saat menampilkan event</p>
+                        <button class="btn btn-ghost mt-2 text-sm" onclick="retryLoadEvents()">Coba Lagi</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Load gamification overview
+        async function loadGamificationOverview() {
+            try {
+                const gamificationSkeleton = document.getElementById('gamification-skeleton');
+                const gamificationOverview = document.getElementById('gamification-overview');
+                
+                // Check if elements exist before using them
+                if (!gamificationSkeleton || !gamificationOverview) {
+                    console.warn('Gamification elements not found in DOM');
+                    return;
+                }
+                
+                // Rest of the function
+                callApi('getGamifikasiXP').then(xpResponse => {
+                    callApi('getGamifikasiBadge').then(badgesResponse => {
+                        // Hide skeleton
+                        gamificationSkeleton.classList.add('hidden');
+                        
+                        if (xpResponse.success && badgesResponse.success) {
+                            renderGamificationOverview(xpResponse.data, badgesResponse.data);
+                        } else {
+                            gamificationOverview.innerHTML = `
+                                <div class="text-center text-muted-foreground py-6">
+                                    <p class="text-sm">Gagal memuat data gamifikasi</p>
+                                </div>
+                            `;
+                        }
+                    });
+                }).catch(error => {
+                    console.error('Error loading gamification overview:', error);
+                    if (gamificationSkeleton) gamificationSkeleton.classList.add('hidden');
+                    if (gamificationOverview) {
+                        gamificationOverview.innerHTML = `
+                            <div class="text-center text-muted-foreground py-6">
+                                <p class="text-sm">Gagal memuat data gamifikasi</p>
+                            </div>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error('Error in loadGamificationOverview:', error);
+            }
+        }
+        
+        function renderGamificationOverview(xpData, badgesData) {
+            const container = document.getElementById('gamification-overview');
+            
+            if ((!xpData || xpData.length === 0) && (!badgesData || badgesData.length === 0)) {
+                container.innerHTML = `
+                    <div class="text-center text-muted-foreground py-6">
+                        <p class="text-sm">Belum ada data gamifikasi</p>
+                </div>
+                `;
+                return;
+            }
+            
+            // Calculate total students with XP
+            const studentsWithXP = new Set();
+            if (xpData && xpData.length > 0) {
+                xpData.forEach(item => {
+                    if (item.siswa_id) {
+                        studentsWithXP.add(item.siswa_id);
+                    }
+                });
+            }
+            
+            // Get total badges
+            const totalBadges = badgesData ? badgesData.length : 0;
+            
+            let html = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="shadcn-card p-4">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span class="font-medium text-sm">Sistem XP</span>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-sm text-muted-foreground flex justify-between">
+                                <span>Siswa dengan XP:</span>
+                                <span class="font-medium">${studentsWithXP.size}</span>
+                            </p>
+                            <p class="text-sm text-muted-foreground flex justify-between">
+                                <span>Total entri XP:</span>
+                                <span class="font-medium">${xpData ? xpData.length : 0}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="shadcn-card p-4">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a4 4 0 00-4-4H5.45a4 4 0 00-3.91 3.22L1 11l.77 1.75C2.5 14.56 3.5 15 5 15h2.5M12 8l-3.5 3.5M12 8l3.5 3.5"></path>
+                            </svg>
+                            <span class="font-medium text-sm">Badge</span>
+                        </div>
+                        <p class="text-sm text-muted-foreground flex justify-between">
+                            <span>Total badge:</span>
+                            <span class="font-medium">${totalBadges}</span>
+                        </p>
+                    </div>
+                </div>
+                `;
+            
+            container.innerHTML = html;
+        }
+        
+        function formatEventDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            
+            return date.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short'
+            });
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (isDateToday(date)) {
+                return 'Hari ini';
+            } else if (isDateYesterday(date)) {
+                return 'Kemarin';
+            } else {
+                return date.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short'
+                });
+            }
+        }
+        
+        function isDateToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                date.getMonth() === today.getMonth() &&
+                date.getFullYear() === today.getFullYear();
+        }
+        
+        function isDateYesterday(date) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            return date.getDate() === yesterday.getDate() &&
+                date.getMonth() === yesterday.getMonth() &&
+                date.getFullYear() === yesterday.getFullYear();
+        }
+        
+        function isDateTomorrow(date) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return date.getDate() === tomorrow.getDate() &&
+                date.getMonth() === tomorrow.getMonth() &&
+                date.getFullYear() === tomorrow.getFullYear();
+        }
+        
+        // Helper function to call API following CORS rules
+        async function callApi(action, params = {}) {
+            try {
+                // Check if API_URL is defined
+                if (typeof API_URL === 'undefined' || !API_URL) {
+                    if (typeof window !== 'undefined' && window.API_URL) {
+                        API_URL = window.API_URL;
+                    } else {
+                        API_URL = 'https://script.google.com/macros/s/AKfycbzmzrbEGpVZxm4NskhdZ_WOh41-GKeIn1ryxg1jkxHIfGtG5vHDKzN49J5oYx1amu_iRQ/exec';
+                    }
+                }
+                
+                // Create form data with URLSearchParams for proper encoding
+                // CORS-compliant: Use URLSearchParams instead of JSON to avoid preflight requests
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                
+                // Add other params
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        formData.append(key, String(params[key]));
+                    }
+                }
+                
+                // Make fetch request - CORS-compliant: No custom headers to avoid preflight OPTIONS requests
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                    // CORS-compliant: No custom headers like Content-Type or Authorization
+                });
+                
+                // Check for HTTP errors
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                // Parse response
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                return { 
+                    success: false, 
+                    error: error.message
+                };
+            }
+        }
+        
+        // Simplified toast notification
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${type === 'error' ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'} max-w-xs z-50 text-sm`;
+            toast.innerHTML = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        // Load content based on active tab
+        function loadTabContent(tabId) {
+            console.log(`Loading content for tab: ${tabId}`);
+            
+            switch(tabId) {
+                case 'dashboard-overview':
+                    loadOverviewData();
+                    break;
+                case 'dashboard-recent-activity':
+                    loadActivityData();
+                    break;
+                case 'dashboard-upcoming':
+                    loadUpcomingData();
+                    break;
+            }
+        }
+        
+        // Load overview data (stats)
+        function loadOverviewData() {
+            // Load class count if not already loaded
+            if (document.getElementById('kelas-count').textContent === '-') {
+                loadClassCount();
+            }
+            
+            // Load student count if not already loaded
+            if (document.getElementById('siswa-count').textContent === '-') {
+                loadStudentCount();
+            }
+            
+            // Load assignment count if not already loaded
+            if (document.getElementById('tugas-count').textContent === '-') {
+                loadAssignmentCount();
+            }
+        }
+        
+        // Load activity data
+        function loadActivityData() {
+            const activityContent = document.getElementById('activity-content');
+            const activityLoading = document.getElementById('activity-loading');
+            
+            // Check if already loaded
+            if (!activityContent.classList.contains('hidden')) {
+                return; // Already loaded
+            }
+            
+            // Show loading state
+            activityLoading.classList.remove('hidden');
+            activityContent.classList.add('hidden');
+            
+            // First fetch all classes to get a mapping of class IDs to names
+            getKelas().then(kelasResponse => {
+                // Create a mapping of class IDs to class names
+                const classMap = {};
+                if (kelasResponse.success && kelasResponse.data) {
+                    kelasResponse.data.forEach(kelas => {
+                        classMap[kelas.id] = kelas.nama_kelas || kelas.nama || 'Kelas ' + kelas.id;
+                    });
+                }
+                
+                // Now fetch activities with class name mapping available
+                return Promise.all([
+                    getPaginatedTugas(1, 5),
+                    getPaginatedPresensi(1, 5),
+                    classMap
+                ]);
+            }).then(([tugasResponse, presensiResponse, classMap]) => {
+                let html = '';
+                
+                // Process assignments
+                if (tugasResponse.success && tugasResponse.data.length > 0) {
+                    tugasResponse.data.forEach(tugas => {
+                        html += `
+                            <div class="p-3 border rounded-md">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <span class="badge badge-secondary">Tugas</span>
+                                        <h4 class="font-medium mt-1">${tugas.judul || 'Tanpa judul'}</h4>
+                                    </div>
+                                    <time class="text-sm text-muted-foreground">${formatDate(tugas.tanggal_dibuat)}</time>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Process attendance records
+                if (presensiResponse.success && presensiResponse.data.length > 0) {
+                    presensiResponse.data.forEach(presensi => {
+                        // Get class name from mapping or use a fallback
+                        const kelasNama = classMap[presensi.kelas_id] || presensi.kelas_nama || 'Kelas ' + presensi.kelas_id;
+                        
+                        html += `
+                            <div class="p-3 border rounded-md">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <span class="badge badge-secondary">Presensi</span>
+                                        <h4 class="font-medium mt-1">${kelasNama}</h4>
+                                    </div>
+                                    <time class="text-sm text-muted-foreground">${formatDate(presensi.tanggal)}</time>
+                                </div>
+                </div>
+                `;
+                    });
+                }
+                
+                if (html === '') {
+                    html = '<p class="text-muted-foreground">Tidak ada aktivitas terbaru.</p>';
+                }
+                
+                // Display the results
+                activityContent.innerHTML = html;
+                activityLoading.classList.add('hidden');
+                activityContent.classList.remove('hidden');
+            }).catch(error => {
+                console.error('Error loading activities:', error);
+                activityContent.innerHTML = `<p class="text-destructive">Error: ${error.message}</p>`;
+                activityLoading.classList.add('hidden');
+                activityContent.classList.remove('hidden');
+            });
+        }
+        
+        // Load upcoming events
+        function loadUpcomingData() {
+            const upcomingContent = document.getElementById('upcoming-content');
+            const upcomingLoading = document.getElementById('upcoming-loading');
+            
+            // Check if already loaded
+            if (!upcomingContent.classList.contains('hidden')) {
+                return; // Already loaded
+            }
+            
+            // Show loading state
+            upcomingLoading.classList.remove('hidden');
+            upcomingContent.classList.add('hidden');
+            
+            // Get current date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // First fetch all classes to get a mapping of class IDs to names
+            getKelas().then(kelasResponse => {
+                // Create a mapping of class IDs to class names
+                const classMap = {};
+                if (kelasResponse.success && kelasResponse.data) {
+                    kelasResponse.data.forEach(kelas => {
+                        classMap[kelas.id] = kelas.nama_kelas || kelas.nama || 'Kelas ' + kelas.id;
+                    });
+                }
+                
+                // Get upcoming events and assignments
+                return Promise.all([
+                    getPaginatedEvent(1, 5, { upcoming: true }),
+                    getPaginatedTugas(1, 5, { 
+                        upcoming: true,
+                        tanggal_selesai_after: today.toISOString().split('T')[0]
+                    }),
+                    classMap
+                ]);
+            }).then(([eventsResponse, tugasResponse, classMap]) => {
+                let html = '';
+                
+                // Process events
+                if (eventsResponse.success && eventsResponse.data.length > 0) {
+                    eventsResponse.data.forEach(event => {
+                        html += `
+                            <div class="p-3 border rounded-md">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <span class="badge badge-secondary">Event</span>
+                                        <h4 class="font-medium mt-1">${event.judul || 'Tanpa judul'}</h4>
+                                        <p class="text-sm text-muted-foreground mt-1">${event.deskripsi || ''}</p>
+                                    </div>
+                                    <time class="text-sm text-muted-foreground">${formatDate(event.tanggal)}</time>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Process upcoming assignments
+                if (tugasResponse.success && tugasResponse.data.length > 0) {
+                    tugasResponse.data.forEach(tugas => {
+                        // Get class name from mapping or use a fallback
+                        const kelasNama = classMap[tugas.kelas_id] || 'Kelas ' + tugas.kelas_id;
+                        
+                html += `
+                            <div class="p-3 border rounded-md">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <span class="badge badge-secondary">Deadline Tugas</span>
+                                        <h4 class="font-medium mt-1">${tugas.judul || 'Tanpa judul'}</h4>
+                                        <p class="text-sm text-muted-foreground mt-1">Kelas: ${kelasNama}</p>
+                                    </div>
+                                    <time class="text-sm text-muted-foreground">${formatDate(tugas.tanggal_selesai)}</time>
+                    </div>
+                </div>
+                `;
+                    });
+                }
+                
+                if (html === '') {
+                    html = '<p class="text-muted-foreground">Tidak ada jadwal mendatang.</p>';
+                }
+                
+                // Display the results
+                upcomingContent.innerHTML = html;
+                upcomingLoading.classList.add('hidden');
+                upcomingContent.classList.remove('hidden');
+            }).catch(error => {
+                console.error('Error loading upcoming events:', error);
+                upcomingContent.innerHTML = `<p class="text-destructive">Error: ${error.message}</p>`;
+                upcomingLoading.classList.add('hidden');
+                upcomingContent.classList.remove('hidden');
+            });
+        }
+        
+        // Load class count with lazy loading
+        async function loadClassCount() {
+            try {
+                const response = await getKelas();
+                if (response.success) {
+                    document.getElementById('kelas-count').textContent = response.data.length;
+                    document.getElementById('kelas-count-skeleton').classList.add('hidden');
+                    document.getElementById('kelas-count-container').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading class count:', error);
+                document.getElementById('kelas-count').textContent = 'Error';
+                document.getElementById('kelas-count-skeleton').classList.add('hidden');
+                document.getElementById('kelas-count-container').classList.remove('hidden');
+            }
+        }
+        
+        // Load student count with lazy loading
+        async function loadStudentCount() {
+            try {
+                const response = await getSiswa();
+                if (response.success) {
+                    document.getElementById('siswa-count').textContent = response.data.length;
+                    document.getElementById('siswa-count-skeleton').classList.add('hidden');
+                    document.getElementById('siswa-count-container').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading student count:', error);
+                document.getElementById('siswa-count').textContent = 'Error';
+                document.getElementById('siswa-count-skeleton').classList.add('hidden');
+                document.getElementById('siswa-count-container').classList.remove('hidden');
+            }
+        }
+        
+        // Load assignment count with lazy loading
+        async function loadAssignmentCount() {
+            try {
+                const response = await getTugas();
+                if (response.success) {
+                    document.getElementById('tugas-count').textContent = response.data.length;
+                    document.getElementById('tugas-count-skeleton').classList.add('hidden');
+                    document.getElementById('tugas-count-container').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading assignment count:', error);
+                document.getElementById('tugas-count').textContent = 'Error';
+                document.getElementById('tugas-count-skeleton').classList.add('hidden');
+                document.getElementById('tugas-count-container').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html> 

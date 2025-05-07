@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tugas - Teacher Administration Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Tugas</h2>
+                    <button id="add-assignment-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Tambah Tugas
+                    </button>
+                </div>
+                
+                <!-- Filter container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="search-input">
+                                    Cari Tugas
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="search-input" class="shadcn-input pl-10" placeholder="Cari berdasarkan judul, jenis, atau kelas...">
+                                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-class">
+                                    Filter Kelas
+                                </label>
+                                <select id="filter-class" class="shadcn-select">
+                                    <option value="">Semua Kelas</option>
+                                    <!-- Will be populated from classes data -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Assignments table -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div id="assignments-container" class="w-full overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenggat</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="assignments-table-body">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        Memuat data tugas...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Assignment Modal -->
+    <div id="assignment-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Tambah Tugas</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="assignment-form">
+                <input type="hidden" id="assignment-id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="judul">
+                        Judul Tugas
+                    </label>
+                    <input id="judul" type="text" class="shadcn-input" placeholder="Judul tugas" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="kelas">
+                        Kelas
+                    </label>
+                    <select id="kelas" class="shadcn-select" required>
+                        <option value="">Pilih Kelas</option>
+                        <!-- Will be populated from classes data -->
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="jenis">
+                        Jenis Tugas
+                    </label>
+                    <select id="jenis" class="shadcn-select" required>
+                        <option value="">Pilih Jenis</option>
+                        <option value="Ulangan Harian">Ulangan Harian</option>
+                        <option value="Tugas Individu">Tugas Individu</option>
+                        <option value="Tugas Kelompok">Tugas Kelompok</option>
+                        <option value="Praktikum">Praktikum</option>
+                        <option value="Proyek">Proyek</option>
+                        <option value="Ujian">Ujian</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="deskripsi">
+                        Deskripsi
+                    </label>
+                    <textarea id="deskripsi" class="shadcn-input" placeholder="Deskripsi tugas" rows="3"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="tanggal-mulai">
+                            Tanggal Mulai
+                        </label>
+                        <input id="tanggal-mulai" type="date" class="shadcn-input" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="tanggal-selesai">
+                            Tanggal Selesai
+                        </label>
+                        <input id="tanggal-selesai" type="date" class="shadcn-input" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="bobot">
+                            Bobot (%)
+                        </label>
+                        <input id="bobot" type="number" min="0" max="100" class="shadcn-input" placeholder="Bobot nilai">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="status">
+                            Status
+                        </label>
+                        <select id="status" class="shadcn-select" required>
+                            <option value="Belum Dimulai">Belum Dimulai</option>
+                            <option value="Berlangsung">Berlangsung</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus tugas "<span id="delete-assignment-title" class="font-semibold"></span>"?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan dan akan menghapus nilai siswa terkait.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize layout
+            initLayout();
+            updatePageTitle('Tugas');
+            
+            // Load assignments and classes data
+            loadData();
+            
+            // Event listeners
+            document.getElementById('add-assignment-btn').addEventListener('click', showAddModal);
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+            document.getElementById('assignment-form').addEventListener('submit', handleSubmit);
+            
+            // Delete modal event listeners
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', deleteAssignment);
+            
+            // Search and filter functionality
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+            document.getElementById('filter-class').addEventListener('change', applyFilters);
+        });
+        
+        // Global variables
+        let assignments = [];
+        let classes = [];
+        let deleteAssignmentId = null;
+        
+        // Load assignments and classes data
+        async function loadData() {
+            try {
+                showLoading('assignments-table-body');
+                
+                // Check for cached data first
+                const cachedClasses = localStorage.getItem('admin_classes');
+                const classesCache = cachedClasses ? JSON.parse(cachedClasses) : null;
+                const cacheTimestamp = localStorage.getItem('admin_classes_timestamp');
+                const cacheAge = cacheTimestamp ? (Date.now() - parseInt(cacheTimestamp)) : Infinity;
+                const cacheValid = cacheAge < 3600000; // 1 hour cache validity
+                
+                // Load both classes and assignments in parallel
+                const [classesResult, assignmentsResult] = await Promise.all([
+                    // Classes data - use cache if valid, otherwise fetch
+                    (async () => {
+                        if (classesCache && cacheValid) {
+                            console.log('Using cached classes data');
+                            return { success: true, data: classesCache };
+                        }
+                        
+                        try {
+                            const response = await getKelas();
+                            console.log('Classes API response:', response);
+                            
+                            if (response && response.success) {
+                                // Cache valid response
+                                localStorage.setItem('admin_classes', JSON.stringify(response.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                                return response;
+                            }
+                            throw new Error('Failed to load classes');
+                        } catch (error) {
+                            console.warn('Error in getKelas, trying fallback:', error);
+                            // Fallback
+                            console.log('Trying direct API call for loading classes...');
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getKelas');
+                            
+                            const fallbackResponse = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                            
+                            if (fallbackResponse && fallbackResponse.success) {
+                                localStorage.setItem('admin_classes', JSON.stringify(fallbackResponse.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                            }
+                            return fallbackResponse;
+                        }
+                    })(),
+                    
+                    // Assignments data
+                    (async () => {
+                        try {
+                            const response = await getTugas();
+                            console.log('Assignments API response:', response);
+                            
+                            if (response && response.success) return response;
+                            throw new Error('Failed to load assignments');
+                        } catch (error) {
+                            console.warn('Error in getTugas, trying fallback:', error);
+                            // Fallback
+                            console.log('Trying direct API call for loading assignments...');
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getTugas');
+                            
+                            const response = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                            
+                            console.log('Assignments API response (POST):', response);
+                            return response;
+                        }
+                    })()
+                ]);
+                
+                // Process results
+                if (classesResult && classesResult.success) {
+                    classes = classesResult.data || [];
+                    populateClassDropdowns();
+                } else {
+                    console.error('Failed to load classes with all methods');
+                }
+                
+                if (assignmentsResult && assignmentsResult.success) {
+                    assignments = assignmentsResult.data || [];
+                    // Normalize assignment IDs
+                    assignments = assignments.map(assignment => {
+                        const id = assignment.id || assignment.tugas_id || '';
+                        const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                        return {
+                            ...assignment,
+                            id: String(safeId),
+                            tugas_id: String(safeId)
+                        };
+                    });
+                    renderAssignmentsTable(assignments);
+                } else {
+                    showError('assignments-table-body', 'Gagal memuat data tugas dengan semua metode. Silakan refresh halaman.');
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('assignments-table-body', 'Terjadi kesalahan saat memuat data. Periksa konsol untuk detail.');
+            }
+        }
+        
+        // Add a method to clear cache if needed
+        function clearDataCache() {
+            localStorage.removeItem('admin_classes');
+            localStorage.removeItem('admin_classes_timestamp');
+            console.log('Data cache cleared');
+        }
+        
+        // Populate class dropdowns in filter and form
+        function populateClassDropdowns() {
+            if (!classes || !Array.isArray(classes) || classes.length === 0) {
+                console.warn('No classes available to populate dropdowns');
+                return;
+            }
+            
+            // Sort classes by name
+            classes.sort((a, b) => {
+                const nameA = a.nama || a.nama_kelas || '';
+                const nameB = b.nama || b.nama_kelas || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Filter dropdown
+            const filterSelect = document.getElementById('filter-class');
+            if (filterSelect) {
+                filterSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                // Add options
+                classes.forEach(kelas => {
+                    const id = kelas.id || kelas.kelas_id;
+                    const nama = kelas.nama || kelas.nama_kelas || 'Kelas Tanpa Nama';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = nama;
+                        filterSelect.appendChild(option);
+                    }
+                });
+            }
+            
+            // Form select
+            const formSelect = document.getElementById('kelas');
+            if (formSelect) {
+                formSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+                
+                // Add options
+                classes.forEach(kelas => {
+                    const id = kelas.id || kelas.kelas_id;
+                    const nama = kelas.nama || kelas.nama_kelas || 'Kelas Tanpa Nama';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = nama;
+                        formSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+        
+        // Render assignments table
+        function renderAssignmentsTable(data) {
+            const tableBody = document.getElementById('assignments-table-body');
+            
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        Belum ada data tugas
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+            
+            console.log('Rendering assignments:', data);
+            
+            let html = '';
+            data.forEach(tugas => {
+                // Handle different property naming conventions
+                const id = tugas.id || tugas.tugas_id;
+                const judul = tugas.judul || '-';
+                const kelasId = tugas.kelas_id || tugas.kelas;
+                const jenis = tugas.jenis || '-';
+                const tanggalMulai = tugas.tanggal_mulai || tugas.tanggalMulai || '';
+                const tanggalSelesai = tugas.tanggal_selesai || tugas.tanggalSelesai || '';
+                const status = tugas.status || 'Belum Dimulai';
+                
+                // Find class name from class ID
+                const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                const kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas) : '-';
+                
+                // Generate a status badge with appropriate color
+                let statusBadge = '';
+                if (status === 'Belum Dimulai') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Belum Dimulai</span>';
+                } else if (status === 'Berlangsung') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Berlangsung</span>';
+                } else if (status === 'Selesai') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Selesai</span>';
+                } else {
+                    statusBadge = `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${status}</span>`;
+                }
+                
+                // Ensure ID is not undefined or empty
+                const safeId = id ? id : 'no-id-' + Math.random().toString(36).substring(2, 9);
+                
+                html += `
+                <tr data-assignment-id="${safeId}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${judul}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${kelasNama}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${jenis}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${formatDate(tanggalMulai)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showEditModal('${safeId}')">
+                            Edit
+                        </button>
+                        <button class="text-red-600 hover:text-red-900" onclick="showDeleteModal('${safeId}')">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+        }
+        
+        // Format date from ISO string to local date format
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString; // Return original if not valid date
+                
+                return date.toLocaleDateString();
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString; // Return original on error
+            }
+        }
+        
+        // Format date for input field (YYYY-MM-DD)
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString;
+                
+                return date.toISOString().split('T')[0];
+            } catch (error) {
+                console.error('Error formatting date for input:', error);
+                return dateString;
+            }
+        }
+        
+        // Apply search and filter
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const classFilter = document.getElementById('filter-class').value;
+            
+            let filteredAssignments = assignments;
+            
+            // Apply class filter
+            if (classFilter) {
+                filteredAssignments = filteredAssignments.filter(tugas => {
+                    const tugasKelasId = tugas.kelas_id || tugas.kelas;
+                    return tugasKelasId === classFilter;
+                });
+            }
+            
+            // Apply search term
+            if (searchTerm) {
+                filteredAssignments = filteredAssignments.filter(tugas => {
+                    const judul = (tugas.judul || '').toLowerCase();
+                    const jenis = (tugas.jenis || '').toLowerCase();
+                    const kelasId = tugas.kelas_id || tugas.kelas;
+                    const deskripsi = (tugas.deskripsi || '').toLowerCase();
+                    
+                    // Get class name
+                    const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                    const kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '').toLowerCase() : '';
+                    
+                    return judul.includes(searchTerm) || 
+                           jenis.includes(searchTerm) || 
+                           deskripsi.includes(searchTerm) ||
+                           kelasNama.includes(searchTerm);
+                });
+            }
+            
+            renderAssignmentsTable(filteredAssignments);
+        }
+        
+        // Show modal for adding a new assignment
+        function showAddModal() {
+            document.getElementById('modal-title').textContent = 'Tambah Tugas';
+            document.getElementById('assignment-id').value = '';
+            document.getElementById('assignment-form').reset();
+            
+            // Set default dates
+            const today = new Date();
+            const nextWeek = new Date();
+            nextWeek.setDate(today.getDate() + 7);
+            
+            document.getElementById('tanggal-mulai').value = formatDateForInput(today);
+            document.getElementById('tanggal-selesai').value = formatDateForInput(nextWeek);
+            
+            document.getElementById('assignment-modal').classList.remove('hidden');
+        }
+        
+        // Show modal for editing an assignment
+        function showEditModal(id) {
+            console.log("showEditModal called with ID:", id);
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const tugas = assignments.find(t => String(t.id) === idStr || String(t.tugas_id) === idStr);
+            console.log("Found assignment object:", tugas);
+            
+            if (!tugas) {
+                console.error("Assignment not found with ID:", id);
+                showToast('error', "Error: Assignment not found with ID: " + id);
+                return;
+            }
+            
+            // Handle different property naming conventions
+            const judul = tugas.judul || '';
+            const kelasId = tugas.kelas_id || tugas.kelas || '';
+            const jenis = tugas.jenis || '';
+            const deskripsi = tugas.deskripsi || '';
+            const tanggalMulai = tugas.tanggal_mulai || tugas.tanggalMulai || '';
+            const tanggalSelesai = tugas.tanggal_selesai || tugas.tanggalSelesai || '';
+            const bobot = tugas.bobot || '';
+            const status = tugas.status || 'Belum Dimulai';
+            
+            document.getElementById('modal-title').textContent = 'Edit Tugas';
+            document.getElementById('assignment-id').value = id;
+            document.getElementById('judul').value = judul;
+            document.getElementById('kelas').value = kelasId;
+            document.getElementById('jenis').value = jenis;
+            document.getElementById('deskripsi').value = deskripsi;
+            document.getElementById('tanggal-mulai').value = formatDateForInput(tanggalMulai);
+            document.getElementById('tanggal-selesai').value = formatDateForInput(tanggalSelesai);
+            document.getElementById('bobot').value = bobot;
+            document.getElementById('status').value = status;
+            
+            document.getElementById('assignment-modal').classList.remove('hidden');
+        }
+        
+        // Hide the modal
+        function hideModal() {
+            document.getElementById('assignment-modal').classList.add('hidden');
+        }
+        
+        // Show delete confirmation modal
+        function showDeleteModal(id) {
+            console.log("showDeleteModal called with ID:", id);
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const tugas = assignments.find(t => String(t.id) === idStr || String(t.tugas_id) === idStr);
+            console.log("Found assignment object:", tugas);
+            
+            if (!tugas) {
+                console.error("Assignment not found with ID:", id);
+                showToast('error', "Error: Assignment not found with ID: " + id);
+                return;
+            }
+            
+            // Set global deleteAssignmentId
+            window.deleteAssignmentId = id;
+            document.getElementById('delete-assignment-title').textContent = tugas.judul || 'Tugas';
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete confirmation modal
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+            // Don't clear deleteAssignmentId here
+        }
+        
+        // Helper function to set loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+        
+        // Handle form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(submitButton, true);
+            
+            const id = document.getElementById('assignment-id').value;
+            const isEdit = !!id;
+            
+            console.log('Form submission - isEdit:', isEdit, 'ID:', id);
+            
+            // Standardize property names to match what the backend expects
+            const tugasData = {
+                judul: document.getElementById('judul').value,
+                kelas_id: document.getElementById('kelas').value,
+                jenis: document.getElementById('jenis').value,
+                deskripsi: document.getElementById('deskripsi').value,
+                tanggal_mulai: document.getElementById('tanggal-mulai').value,
+                tanggal_selesai: document.getElementById('tanggal-selesai').value,
+                bobot: document.getElementById('bobot').value,
+                status: document.getElementById('status').value
+            };
+            
+            // Add alternate field names for compatibility
+            tugasData.kelas = tugasData.kelas_id;
+            tugasData.tanggalMulai = tugasData.tanggal_mulai;
+            tugasData.tanggalSelesai = tugasData.tanggal_selesai;
+            
+            // For edit operations, include both ID field formats
+            if (isEdit) {
+                tugasData.id = id;
+                tugasData.tugas_id = id;
+            }
+            
+            try {
+                // First try standard API functions
+                let response;
+                try {
+                    if (isEdit) {
+                        // Update existing assignment
+                        console.log('Updating assignment with ID:', id);
+                        response = await updateTugas(id, tugasData);
+                    } else {
+                        // Add new assignment
+                        response = await createTugas(tugasData);
+                    }
+                    console.log('API response:', response);
+                } catch (functionError) {
+                    console.warn('API function error:', functionError);
+                    
+                    // Fall back to direct API call with POST
+                    console.log('Trying direct API call for saving assignment...');
+                    const formData = new URLSearchParams();
+                    formData.append('action', isEdit ? 'updateTugas' : 'createTugas');
+                    if (isEdit) {
+                        formData.append('id', String(id));
+                        formData.append('tugas_id', String(id));
+                    }
+                    
+                    // Add all data properties
+                    for (const key in tugasData) {
+                        formData.append(key, tugasData[key]);
+                    }
+                    
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).catch(err => {
+                        console.error('API Error:', err);
+                        return { success: false, error: err.message };
+                    });
+                    console.log('Direct API response:', response);
+                }
+                
+                if (response && response.success) {
+                    hideModal();
+                    await loadData();
+                    applyFilters(); // Re-apply any active filters
+                    
+                    showToast('success', `Tugas berhasil ${isEdit ? 'diperbarui' : 'ditambahkan'}.`);
+                } else {
+                    const errorMsg = response && response.error ? response.error : 'Unknown error occurred';
+                    showToast('error', `Gagal ${isEdit ? 'memperbarui' : 'menambahkan'} tugas: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Error saving assignment:', error);
+                showToast('error', `Terjadi kesalahan saat ${isEdit ? 'memperbarui' : 'menambahkan'} tugas. Periksa konsol untuk detail.`);
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+        
+        // Delete assignment
+        async function deleteAssignment() {
+            const confirmButton = document.getElementById('confirm-delete-btn');
+            setButtonLoading(confirmButton, true);
+            
+            // Use the global variable
+            const assignmentIdToDelete = window.deleteAssignmentId;
+            console.log('Deleting assignment with ID (from global var):', assignmentIdToDelete);
+            
+            if (!assignmentIdToDelete || assignmentIdToDelete === 'undefined') {
+                console.error('Invalid assignment ID to delete:', assignmentIdToDelete);
+                showToast('error', 'Error: Invalid assignment ID to delete');
+                setButtonLoading(confirmButton, false);
+                return;
+            }
+            
+            // Find the assignment in the array to confirm it exists
+            const assignmentToDelete = assignments.find(a => 
+                String(a.id) === String(assignmentIdToDelete) || 
+                String(a.tugas_id) === String(assignmentIdToDelete)
+            );
+            
+            if (!assignmentToDelete) {
+                console.error('Assignment not found in local data with ID:', assignmentIdToDelete);
+                // Continue anyway as the backend might have the record
+            } else {
+                console.log('Found assignment to delete:', assignmentToDelete);
+            }
+            
+            try {
+                // First try standard API function
+                let response;
+                try {
+                    response = await deleteTugas(assignmentIdToDelete);
+                    console.log('deleteTugas API response:', response);
+                } catch (functionError) {
+                    console.warn('API function error:', functionError);
+                    
+                    // Fall back to direct API call
+                    console.log('Trying direct API call for deleting assignment...');
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'deleteTugas');
+                    formData.append('id', String(assignmentIdToDelete));
+                    formData.append('tugas_id', String(assignmentIdToDelete));
+                    
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).catch(err => {
+                        console.error('API Error:', err);
+                        return { success: false, error: err.message };
+                    });
+                    console.log('Direct API response:', response);
+                }
+                
+                if (response && response.success) {
+                    hideDeleteModal();
+                    // Clear the ID after successful deletion
+                    window.deleteAssignmentId = null;
+                    await loadData();
+                    applyFilters(); // Re-apply any active filters
+                    
+                    showToast('success', 'Tugas berhasil dihapus.');
+                } else {
+                    const errorMsg = response && response.error ? response.error : 'Unknown error occurred';
+                    showToast('error', `Gagal menghapus tugas: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Error deleting assignment:', error);
+                showToast('error', 'Terjadi kesalahan saat menghapus tugas: ' + error.message);
+            } finally {
+                setButtonLoading(confirmButton, false);
+            }
+        }
+        
+        // Helper functions for showing loading/error states
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Memuat data tugas...
+                    </td>
+                </tr>
+                `;
+            }
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-red-500">
+                        <svg class="h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        ${message}
+                    </td>
+                </tr>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

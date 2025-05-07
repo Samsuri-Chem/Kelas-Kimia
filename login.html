@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - KelasGuru</title>    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjU2IDU2TDU2IDE2Mi41VjE4NEwyNTYgMjkwLjVMNDU2IDE4NFYxNjIuNUwyNTYgNTZaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTQ1NiAyMDhMNDEzIDIyOFYzMTBDMzkwLjUgMzQ0LjUgMzUxIDM3NiAyNTYgMzc2QzE2MSAzNzYgMTIxLjUgMzQ0LjUgOTkgMzEwVjIyOEw1NiAyMDhWMzM2Qzg3LjUgMzkwLjUgMTU4IDQ1NiAyNTYgNDU2QzM1NCA0NTYgNDI0LjUgMzkwLjUgNDU2IDMzNlYyMDhaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTM2OCAyNDJWMzA2LjVMMzk2IDI4MlYyMjNMMzY4IDI0MloiIGZpbGw9IiMzNjg1ZmYiLz48cGF0aCBkPSJNMTY5IDIzMkwxNTEgMjI4LjVMMTQzIDI1MkwxNjAgMjUwTDE2OSAyMzJaIiBzdHJva2U9IiMzNjg1ZmYiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE2OSAyMzJMMjI1IDI0NUwyOTYgMjQwLjVMMzQwIDIxMiIgc3Ryb2tlPSIjMzY4NWZmIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Login form styles */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .login-form {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="login-overlay">
+        <div class="login-form">
+            <div class="flex justify-center mb-6">
+                <svg class="w-16 h-16 text-primary" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M256 56L56 162.5V184L256 290.5L456 184V162.5L256 56Z" fill="currentColor"/>
+                    <path d="M456 208L413 228V310C390.5 344.5 351 376 256 376C161 376 121.5 344.5 99 310V228L56 208V336C87.5 390.5 158 456 256 456C354 456 424.5 390.5 456 336V208Z" fill="currentColor"/>
+                    <path d="M368 242V306.5L396 282V223L368 242Z" fill="currentColor"/>
+                    <path d="M169 232L151 228.5L143 252L160 250L169 232Z" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M169 232L225 245L296 240.5L340 212" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-center mb-6">Login to KelasGuru</h2>
+            
+            <div id="login-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 hidden">
+                <span id="login-error-message">Invalid username or password</span>
+            </div>
+            
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                        Username
+                    </label>
+                    <input id="username" type="text" class="shadcn-input" placeholder="Enter your username" required>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                        Password
+                    </label>
+                    <input id="password" type="password" class="shadcn-input" placeholder="Enter your password" required>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <button type="submit" id="login-btn" class="shadcn-btn shadcn-btn-primary w-full py-2 px-4">
+                        Sign In
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-6 text-center text-xs text-gray-500">
+                Developed by @ipadevpro with ❤️
+            </div>
+        </div>
+    </div>
+
+    <!-- API Integration -->
+    <script src="js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle login form submission
+            document.getElementById('login-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                hideLoginError();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                const loginButton = document.getElementById('login-btn');
+                setButtonLoading(loginButton, true);
+                
+                try {
+                    const response = await login(username, password);
+                    
+                    if (response.success) {
+                        // Store user data in localStorage
+                        localStorage.setItem('kelasguru_user', JSON.stringify(response.user));
+                        
+                        // Redirect to dashboard
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        showLoginError(response.error || 'Failed to login');
+                        setButtonLoading(loginButton, false);
+                    }
+                } catch (error) {
+                    showLoginError('An error occurred. Please try again.');
+                    console.error('Login error:', error);
+                    setButtonLoading(loginButton, false);
+                }
+            });
+            
+            // Check if already logged in
+            const userData = localStorage.getItem('kelasguru_user');
+            if (userData) {
+                try {
+                    JSON.parse(userData); // Validate JSON
+                    window.location.href = 'dashboard.html';
+                } catch (e) {
+                    localStorage.removeItem('kelasguru_user');
+                }
+            }
+        });
+        
+        // Toggle loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Signing in...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+        
+        function showLoginError(message) {
+            const errorEl = document.getElementById('login-error');
+            const errorMessageEl = document.getElementById('login-error-message');
+            errorMessageEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        function hideLoginError() {
+            document.getElementById('login-error').classList.add('hidden');
+        }
+    </script>
+</body>
+</html> 

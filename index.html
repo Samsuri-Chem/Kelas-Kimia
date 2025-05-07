@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0;url=login.html">
+    <script>
+        // Check if user is already logged in
+        const userData = localStorage.getItem('kelasguru_user');
+        if (userData) {
+            try {
+                JSON.parse(userData); // Validate JSON
+                window.location.href = 'dashboard.html';
+            } catch (e) {
+                localStorage.removeItem('kelasguru_user');
+                window.location.href = 'login.html';
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <p>Redirecting to <a href="login.html">login page</a>...</p>
+</body>
+</html>

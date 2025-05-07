@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Students Page - Troubleshooting</title>
+</head>
+<body>
+    <h1>Daftar Siswa (Halaman Diagnostik)</h1>
+    
+    <div>
+        <button id="load-btn">Muat Data Siswa</button>
+        <button id="load-kelas-btn">Muat Data Kelas</button>
+    </div>
+    
+    <div id="status">Status: Siap</div>
+    
+    <pre id="result" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px; max-height: 500px; overflow: auto;"></pre>
+    
+    <!-- Import the API functions first -->
+    <script src="js/api.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('load-btn').addEventListener('click', loadStudents);
+            document.getElementById('load-kelas-btn').addEventListener('click', loadKelas);
+        });
+        
+        // Load students data
+        async function loadStudents() {
+            const statusEl = document.getElementById('status');
+            const resultEl = document.getElementById('result');
+            
+            try {
+                statusEl.textContent = 'Status: Memuat data siswa...';
+                
+                // Method 1: Try using direct fetch with GET parameter
+                try {
+                    const response = await fetch(`${API_URL}?action=getSiswa`, {
+                        method: 'GET'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Display result
+                    statusEl.textContent = `Status: ${data.success ? 'Berhasil' : 'Gagal'} memuat data siswa (Method 1: GET)`;
+                    resultEl.textContent = 'Response Data (Method 1):\n' + JSON.stringify(data, null, 2);
+                } catch (error) {
+                    console.error('Method 1 Error:', error);
+                    
+                    // Method 2: Try using URLSearchParams with POST
+                    try {
+                        statusEl.textContent = 'Status: Method 1 gagal, mencoba Method 2...';
+                        
+                        const formData = new URLSearchParams();
+                        formData.append('action', 'getSiswa');
+                        
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        // Display result
+                        statusEl.textContent = `Status: ${data.success ? 'Berhasil' : 'Gagal'} memuat data siswa (Method 2: POST)`;
+                        resultEl.textContent = 'Response Data (Method 2):\n' + JSON.stringify(data, null, 2);
+                    } catch (method2Error) {
+                        console.error('Method 2 Error:', method2Error);
+                        statusEl.textContent = 'Status: Error - Kedua metode gagal';
+                        resultEl.textContent = 'Error Details:\n' + method2Error.stack;
+                    }
+                }
+            } catch (error) {
+                statusEl.textContent = 'Status: Error - ' + error.message;
+                resultEl.textContent = 'Error Details:\n' + error.stack;
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load kelas data
+        async function loadKelas() {
+            const statusEl = document.getElementById('status');
+            const resultEl = document.getElementById('result');
+            
+            try {
+                statusEl.textContent = 'Status: Memuat data kelas...';
+                
+                // First try using the getKelas function from api.js
+                try {
+                    const data = await getKelas();
+                    
+                    // Display result
+                    statusEl.textContent = `Status: ${data.success ? 'Berhasil' : 'Gagal'} memuat data kelas (dari api.js)`;
+                    resultEl.textContent = 'Response Data (api.js function):\n' + JSON.stringify(data, null, 2);
+                } catch (apiError) {
+                    console.error('API.js Error:', apiError);
+                    
+                    // Fall back to direct fetch with GET parameter
+                    try {
+                        statusEl.textContent = 'Status: api.js gagal, mencoba fallback...';
+                        
+                        const response = await fetch(`${API_URL}?action=getKelas`, {
+                            method: 'GET'
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Display result
+                        statusEl.textContent = `Status: ${data.success ? 'Berhasil' : 'Gagal'} memuat data kelas (fallback GET)`;
+                        resultEl.textContent = 'Response Data (fallback):\n' + JSON.stringify(data, null, 2);
+                    } catch (fallbackError) {
+                        console.error('Fallback Error:', fallbackError);
+                        
+                        // Try URLSearchParams with POST as last resort
+                        try {
+                            statusEl.textContent = 'Status: Fallback gagal, mencoba POST...';
+                            
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getKelas');
+                            
+                            const response = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            const data = await response.json();
+                            
+                            // Display result
+                            statusEl.textContent = `Status: ${data.success ? 'Berhasil' : 'Gagal'} memuat data kelas (POST)`;
+                            resultEl.textContent = 'Response Data (POST):\n' + JSON.stringify(data, null, 2);
+                        } catch (postError) {
+                            console.error('POST Error:', postError);
+                            statusEl.textContent = 'Status: Error - Semua metode gagal';
+                            resultEl.textContent = 'Error Details:\n' + postError.stack;
+                        }
+                    }
+                }
+            } catch (error) {
+                statusEl.textContent = 'Status: Error - ' + error.message;
+                resultEl.textContent = 'Error Details:\n' + error.stack;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

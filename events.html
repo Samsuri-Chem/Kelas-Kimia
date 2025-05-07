@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acara & Kegiatan - KelasGuru</title>
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjU2IDU2TDU2IDE2Mi41VjE4NEwyNTYgMjkwLjVMNDU2IDE4NFYxNjIuNUwyNTYgNTZaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTQ1NiAyMDhMNDEzIDIyOFYzMTBDMzkwLjUgMzQ0LjUgMzUxIDM3NiAyNTYgMzc2QzE2MSAzNzYgMTIxLjUgMzQ0LjUgOTkgMzEwVjIyOEw1NiAyMDhWMzM2Qzg3LjUgMzkwLjUgMTU4IDQ1NiAyNTYgNDU2QzM1NCA0NTYgNDI0LjUgMzkwLjUgNDU2IDMzNlYyMDhaIiBmaWxsPSIjMzY4NWZmIi8+PHBhdGggZD0iTTM2OCAyNDJWMzA2LjVMMzk2IDI4MlYyMjNMMzY4IDI0MloiIGZpbGw9IiMzNjg1ZmYiLz48cGF0aCBkPSJNMTY5IDIzMkwxNTEgMjI4LjVMMTQzIDI1MkwxNjAgMjUwTDE2OSAyMzJaIiBzdHJva2U9IiMzNjg1ZmYiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE2OSAyMzJMMjI1IDI0NUwyOTYgMjQwLjVMMzQwIDIxMiIgc3Ryb2tlPSIjMzY4NWZmIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        
+        /* Events calendar styles */
+        .calendar-day {
+            min-height: 100px;
+            position: relative;
+        }
+        
+        .day-header {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .event-item {
+            margin: 3px 0;
+            padding: 3px 5px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .event-type-meeting {
+            background-color: #DBEAFE;
+            border-left: 3px solid #3B82F6;
+        }
+        
+        .event-type-deadline {
+            background-color: #FEE2E2;
+            border-left: 3px solid #EF4444;
+        }
+        
+        .event-type-exam {
+            background-color: #FEF3C7;
+            border-left: 3px solid #F59E0B;
+        }
+        
+        .event-type-holiday {
+            background-color: #D1FAE5;
+            border-left: 3px solid #10B981;
+        }
+        
+        .event-type-other {
+            background-color: #E5E7EB;
+            border-left: 3px solid #6B7280;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Acara & Kegiatan</h2>
+                    <div class="flex space-x-2">
+                        <button id="add-event-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Tambah Acara
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-month">
+                                    Bulan
+                                </label>
+                                <select id="filter-month" class="shadcn-select">
+                                    <option value="0">Januari</option>
+                                    <option value="1">Februari</option>
+                                    <option value="2">Maret</option>
+                                    <option value="3">April</option>
+                                    <option value="4">Mei</option>
+                                    <option value="5">Juni</option>
+                                    <option value="6">Juli</option>
+                                    <option value="7">Agustus</option>
+                                    <option value="8">September</option>
+                                    <option value="9">Oktober</option>
+                                    <option value="10">November</option>
+                                    <option value="11">Desember</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-year">
+                                    Tahun
+                                </label>
+                                <select id="filter-year" class="shadcn-select">
+                                    <!-- Will be populated with years -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-type">
+                                    Jenis Acara
+                                </label>
+                                <select id="filter-type" class="shadcn-select">
+                                    <option value="">Semua Jenis</option>
+                                    <option value="meeting">Rapat</option>
+                                    <option value="deadline">Tenggat Waktu</option>
+                                    <option value="exam">Ujian</option>
+                                    <option value="holiday">Libur</option>
+                                    <option value="other">Lainnya</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button id="filter-btn" class="shadcn-btn shadcn-btn-primary w-full">
+                                    Terapkan Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calendar/Events container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4 bg-primary text-primary-foreground flex justify-between items-center">
+                        <h3 class="text-lg font-semibold" id="calendar-title">Kalender Acara</h3>
+                        <div class="flex space-x-2">
+                            <button id="prev-month-btn" class="text-primary-foreground hover:bg-primary/80 p-1 rounded">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                            </button>
+                            <button id="next-month-btn" class="text-primary-foreground hover:bg-primary/80 p-1 rounded">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="calendar-container" class="p-4">
+                        <div class="grid grid-cols-7 gap-1 mb-2 text-center font-medium">
+                            <div class="p-2">Minggu</div>
+                            <div class="p-2">Senin</div>
+                            <div class="p-2">Selasa</div>
+                            <div class="p-2">Rabu</div>
+                            <div class="p-2">Kamis</div>
+                            <div class="p-2">Jumat</div>
+                            <div class="p-2">Sabtu</div>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                            <!-- Calendar days will be generated here -->
+                            <div class="calendar-day p-2 border rounded bg-gray-100">
+                                <div class="day-header">1</div>
+                                <div class="mt-5 text-xs">
+                                    <div class="event-item event-type-meeting">Rapat Guru</div>
+                                    <div class="event-item event-type-deadline">Deadline Nilai</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Event List -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div class="p-4 bg-primary text-primary-foreground">
+                        <h3 class="text-lg font-semibold">Daftar Acara</h3>
+                    </div>
+                    <div class="p-4">
+                        <div id="events-loading" class="text-center py-4">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <p class="mt-2 text-gray-500">Memuat data acara...</p>
+                        </div>
+                        <div id="events-list" class="hidden">
+                            <!-- Events will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Event Modal -->
+    <div id="event-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Tambah Acara Baru</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="event-form">
+                <input type="hidden" id="event-id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="event-title">
+                        Judul Acara <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="event-title" class="shadcn-input w-full" required placeholder="Masukkan judul acara">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="event-start-date">
+                            Tanggal Mulai <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" id="event-start-date" class="shadcn-input w-full" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="event-end-date">
+                            Tanggal Selesai
+                        </label>
+                        <input type="date" id="event-end-date" class="shadcn-input w-full">
+                        <p class="text-xs text-gray-500 mt-1">Opsional untuk acara lebih dari 1 hari</p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="event-type">
+                        Jenis Acara <span class="text-red-500">*</span>
+                    </label>
+                    <select id="event-type" class="shadcn-select w-full" required>
+                        <option value="">Pilih Jenis Acara</option>
+                        <option value="meeting">Rapat</option>
+                        <option value="deadline">Tenggat Waktu</option>
+                        <option value="exam">Ujian</option>
+                        <option value="holiday">Libur</option>
+                        <option value="other">Lainnya</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="event-location">
+                        Lokasi
+                    </label>
+                    <input type="text" id="event-location" class="shadcn-input w-full" placeholder="Lokasi acara (opsional)">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="event-description">
+                        Deskripsi
+                    </label>
+                    <textarea id="event-description" class="shadcn-textarea w-full" rows="4" placeholder="Deskripsi acara (opsional)"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-event-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus acara <span id="delete-event-title" class="font-semibold"></span>?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Event Modal -->
+    <div id="view-event-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="view-event-title">Detail Acara</h3>
+                <button id="close-view-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex items-center mb-3">
+                    <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm text-gray-500">Tanggal</div>
+                        <div id="view-event-date" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center mb-3">
+                    <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm text-gray-500">Jenis</div>
+                        <div id="view-event-type" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center mb-3">
+                    <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm text-gray-500">Lokasi</div>
+                        <div id="view-event-location" class="font-medium"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <div class="text-sm text-gray-500 mb-1">Deskripsi</div>
+                <div id="view-event-description" class="bg-gray-50 p-3 rounded-md min-h-[100px]"></div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-view-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Tutup
+                </button>
+                <button type="button" id="edit-event-btn" class="shadcn-btn shadcn-btn-primary mr-2">
+                    Edit
+                </button>
+                <button type="button" id="delete-event-btn" class="shadcn-btn shadcn-btn-destructive">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        // Global variables
+        let allEvents = [];
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let currentEventId = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize layout - this will set up the sidebar and header
+            initLayout();
+            updatePageTitle('Acara & Kegiatan');
+            
+            // Populate year filter with reasonable range (current year +/- 5 years)
+            populateYearFilter();
+            
+            // Set current month and year in filters
+            document.getElementById('filter-month').value = currentMonth;
+            document.getElementById('filter-year').value = currentYear;
+            
+            // Update calendar title
+            updateCalendarTitle();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Load data
+            loadEvents();
+        });
+        
+        // Populate year filter dropdown
+        function populateYearFilter() {
+            const yearSelect = document.getElementById('filter-year');
+            const currentYear = new Date().getFullYear();
+            
+            // Add 5 years before and after current year
+            for (let year = currentYear - 5; year <= currentYear + 5; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            
+            // Set current year as selected
+            yearSelect.value = currentYear;
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Add event button
+            document.getElementById('add-event-btn').addEventListener('click', showAddEventModal);
+            
+            // Modal buttons
+            document.getElementById('close-modal-btn').addEventListener('click', hideEventModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideEventModal);
+            
+            // Form submission
+            document.getElementById('event-form').addEventListener('submit', handleEventFormSubmit);
+            
+            // Calendar navigation
+            document.getElementById('prev-month-btn').addEventListener('click', () => {
+                navigateMonth(-1);
+            });
+            document.getElementById('next-month-btn').addEventListener('click', () => {
+                navigateMonth(1);
+            });
+            
+            // Filter button
+            document.getElementById('filter-btn').addEventListener('click', applyFilters);
+            
+            // View Event modal
+            document.getElementById('close-view-modal-btn').addEventListener('click', hideViewEventModal);
+            document.getElementById('close-view-btn').addEventListener('click', hideViewEventModal);
+            document.getElementById('edit-event-btn').addEventListener('click', editCurrentEvent);
+            document.getElementById('delete-event-btn').addEventListener('click', () => {
+                console.log('Delete button clicked, currentEventId:', currentEventId);
+                confirmDeleteCurrentEvent();
+            });
+            
+            // Delete modal
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteEvent);
+        }
+        
+        // API call function following CORS rules
+        async function callApi(action, params = {}) {
+            try {
+                console.log(`Calling API: ${action} with params:`, params);
+                
+                // Create form data with URLSearchParams for proper encoding
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                
+                // Add other params, ensuring they are strings
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        const value = params[key];
+                        formData.append(key, String(value));
+                    }
+                }
+                
+                // Log the exact data being sent for debugging
+                console.log('Sending data:', formData.toString());
+                
+                // Make fetch request - no custom headers to avoid CORS issues
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                    // Important: No Content-Type header to avoid CORS preflight
+                });
+                
+                // Check for HTTP errors
+                if (!response.ok) {
+                    console.error(`HTTP error: ${response.status}`);
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                // Parse response
+                const result = await response.json();
+                console.log('API Response for', action, ':', result);
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                return { 
+                    success: false, 
+                    error: error.message
+                };
+            }
+        }
+        
+        // Load events from API
+        async function loadEvents() {
+            try {
+                document.getElementById('events-loading').classList.remove('hidden');
+                document.getElementById('events-list').classList.add('hidden');
+                
+                // Call API to get events - use getEvent (singular) to match the original backend function
+                const result = await callApi('getEvent');
+                
+                if (result.success) {
+                    // Process and store events
+                    allEvents = result.data || [];
+                    
+                    // Ensure allEvents is an array
+                    if (!Array.isArray(allEvents)) {
+                        console.error('Events data is not an array:', allEvents);
+                        
+                        if (allEvents && typeof allEvents === 'object') {
+                            allEvents = Object.values(allEvents);
+                        } else {
+                            allEvents = [];
+                        }
+                    }
+                    
+                    // Normalize events data
+                    allEvents = normalizeEvents(allEvents);
+                    
+                    console.log('Normalized events data:', allEvents);
+                    
+                    // Render calendar and events list
+                    renderCalendar();
+                    renderEventsList(allEvents);
+                } else {
+                    showToast('error', 'Gagal memuat data acara: ' + (result.error || 'Kesalahan tidak diketahui'));
+                    // Show empty state
+                    renderCalendar();
+                    renderEventsList([]);
+                }
+            } catch (error) {
+                console.error('Error loading events:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data acara: ' + error.message);
+                // Show empty state
+                renderCalendar();
+                renderEventsList([]);
+            } finally {
+                document.getElementById('events-loading').classList.add('hidden');
+                document.getElementById('events-list').classList.remove('hidden');
+            }
+        }
+        
+        // Normalize events data to ensure consistent fields
+        function normalizeEvents(events) {
+            return events.map(event => {
+                // Format dates - ensure we have valid dates
+                let startDate = event.tanggal_mulai || event.start_date || event.tanggal || new Date().toISOString().split('T')[0];
+                let endDate = event.tanggal_selesai || event.end_date || event.tanggal || startDate;
+                
+                // Format dates if they include time
+                if (startDate.includes('T')) {
+                    startDate = startDate.split('T')[0];
+                }
+                
+                if (endDate.includes('T')) {
+                    endDate = endDate.split('T')[0];
+                }
+                
+                // Create normalized event object
+                return {
+                    id: event.id || event._id || event.acara_id || Date.now().toString(),
+                    judul: event.judul || event.title || 'Acara Tanpa Judul',
+                    tanggal_mulai: startDate,
+                    tanggal_selesai: endDate,
+                    jenis: event.jenis || event.type || 'other',
+                    lokasi: event.lokasi || event.location || '',
+                    deskripsi: event.deskripsi || event.description || '',
+                    created_at: event.created_at || '',
+                    updated_at: event.updated_at || ''
+                };
+            });
+        }
+        
+        // Update calendar title
+        function updateCalendarTitle() {
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            
+            const title = `${monthNames[currentMonth]} ${currentYear}`;
+            document.getElementById('calendar-title').textContent = title;
+        }
+        
+        // Navigate month (change calendar view)
+        function navigateMonth(step) {
+            let newMonth = currentMonth + step;
+            let newYear = currentYear;
+            
+            if (newMonth < 0) {
+                newMonth = 11;
+                newYear--;
+            } else if (newMonth > 11) {
+                newMonth = 0;
+                newYear++;
+            }
+            
+            currentMonth = newMonth;
+            currentYear = newYear;
+            
+            // Update filters to match
+            document.getElementById('filter-month').value = currentMonth;
+            document.getElementById('filter-year').value = currentYear;
+            
+            // Update calendar title and render
+            updateCalendarTitle();
+            renderCalendar();
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            // Get filter values
+            currentMonth = parseInt(document.getElementById('filter-month').value);
+            currentYear = parseInt(document.getElementById('filter-year').value);
+            const typeFilter = document.getElementById('filter-type').value;
+            
+            // Update calendar title
+            updateCalendarTitle();
+            
+            // Render calendar with filtered events
+            renderCalendar(typeFilter);
+            
+            // Render events list with filtered events
+            const filteredEvents = filterEvents(allEvents, typeFilter);
+            renderEventsList(filteredEvents);
+        }
+        
+        // Filter events by type and date range
+        function filterEvents(events, typeFilter = '') {
+            // Filter by month/year
+            let filtered = events.filter(event => {
+                // Check if event overlaps with the current month/year
+                const startDate = new Date(event.tanggal_mulai);
+                const endDate = new Date(event.tanggal_selesai);
+                
+                // Create date for first day of month
+                const monthStart = new Date(currentYear, currentMonth, 1);
+                
+                // Create date for last day of month
+                const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+                
+                // Check for overlap
+                return (startDate <= monthEnd && endDate >= monthStart);
+            });
+            
+            // Apply type filter if specified
+            if (typeFilter) {
+                filtered = filtered.filter(event => event.jenis === typeFilter);
+            }
+            
+            return filtered;
+        }
+        
+        // Render calendar
+        function renderCalendar(typeFilter = '') {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            
+            // Filter events for the current month/year and type
+            const filteredEvents = filterEvents(allEvents, typeFilter);
+            
+            // Get first day of month
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            
+            // Get last day of month
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            
+            // Get day of week for first day (0 = Sunday, 1 = Monday, etc.)
+            const firstDayOfWeek = firstDay.getDay();
+            
+            // Get number of days in month
+            const daysInMonth = lastDay.getDate();
+            
+            // Create calendar grid
+            // First, add empty cells for days before the first day of month
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day p-2 border rounded bg-gray-100';
+                calendarGrid.appendChild(emptyCell);
+            }
+            
+            // Add cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day p-2 border rounded';
+                
+                // Check if this is today
+                const currentDate = new Date();
+                if (currentDate.getDate() === day && 
+                    currentDate.getMonth() === currentMonth && 
+                    currentDate.getFullYear() === currentYear) {
+                    cell.classList.add('bg-blue-50', 'border-blue-300');
+                }
+                
+                // Add day number
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-header';
+                dayHeader.textContent = day;
+                cell.appendChild(dayHeader);
+                
+                // Create container for events
+                const eventsContainer = document.createElement('div');
+                eventsContainer.className = 'mt-5 text-xs';
+                
+                // Find events for this day
+                const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = filteredEvents.filter(event => {
+                    const start = event.tanggal_mulai;
+                    const end = event.tanggal_selesai;
+                    
+                    // Check if this day is within event range
+                    return dayStr >= start && dayStr <= end;
+                });
+                
+                // Sort events by type
+                dayEvents.sort((a, b) => {
+                    const typeOrder = { deadline: 1, exam: 2, meeting: 3, holiday: 4, other: 5 };
+                    return (typeOrder[a.jenis] || 999) - (typeOrder[b.jenis] || 999);
+                });
+                
+                // Add event items to the cell
+                dayEvents.forEach(event => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `event-item event-type-${event.jenis}`;
+                    eventDiv.textContent = event.judul;
+                    eventDiv.dataset.eventId = event.id;
+                    
+                    // Add click handler to view event details
+                    eventDiv.addEventListener('click', () => {
+                        viewEvent(event.id);
+                    });
+                    
+                    eventsContainer.appendChild(eventDiv);
+                });
+                
+                cell.appendChild(eventsContainer);
+                calendarGrid.appendChild(cell);
+            }
+            
+            // Add empty cells for remaining days of the week
+            const totalCells = firstDayOfWeek + daysInMonth;
+            const remainingCells = 7 - (totalCells % 7);
+            
+            if (remainingCells < 7) {
+                for (let i = 0; i < remainingCells; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'calendar-day p-2 border rounded bg-gray-100';
+                    calendarGrid.appendChild(emptyCell);
+                }
+            }
+        }
+        
+        // Render events list
+        function renderEventsList(events) {
+            const eventsListContainer = document.getElementById('events-list');
+            
+            if (!events || events.length === 0) {
+                eventsListContainer.innerHTML = `
+                    <div class="text-center py-6">
+                        <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <p class="mt-3 text-gray-500">Belum ada acara. Tambahkan acara baru!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort events by start date
+            events.sort((a, b) => {
+                // Sort by start date first
+                const dateComparison = new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai);
+                
+                // If dates are the same, sort by title
+                if (dateComparison === 0) {
+                    return a.judul.localeCompare(b.judul);
+                }
+                
+                return dateComparison;
+            });
+            
+            // Group events by month
+            const eventsByMonth = {};
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            
+            events.forEach(event => {
+                const startDate = new Date(event.tanggal_mulai);
+                const monthKey = `${startDate.getFullYear()}-${startDate.getMonth()}`;
+                const monthLabel = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+                
+                if (!eventsByMonth[monthKey]) {
+                    eventsByMonth[monthKey] = {
+                        label: monthLabel,
+                        events: []
+                    };
+                }
+                
+                eventsByMonth[monthKey].events.push(event);
+            });
+            
+            // Build the HTML
+            let html = '';
+            
+            // Sort month keys by year and month
+            const sortedMonthKeys = Object.keys(eventsByMonth).sort((a, b) => {
+                const [yearA, monthA] = a.split('-').map(Number);
+                const [yearB, monthB] = b.split('-').map(Number);
+                
+                if (yearA !== yearB) {
+                    return yearA - yearB;
+                }
+                
+                return monthA - monthB;
+            });
+            
+            sortedMonthKeys.forEach(monthKey => {
+                const monthData = eventsByMonth[monthKey];
+                
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-3">${monthData.label}</h4>
+                        <div class="space-y-2">
+                `;
+                
+                monthData.events.forEach(event => {
+                    // Determine event type label and color
+                    let typeLabel = 'Lainnya';
+                    let typeColor = 'bg-gray-100 text-gray-800';
+                    
+                    switch (event.jenis) {
+                        case 'meeting':
+                            typeLabel = 'Rapat';
+                            typeColor = 'bg-blue-100 text-blue-800';
+                            break;
+                        case 'deadline':
+                            typeLabel = 'Tenggat Waktu';
+                            typeColor = 'bg-red-100 text-red-800';
+                            break;
+                        case 'exam':
+                            typeLabel = 'Ujian';
+                            typeColor = 'bg-yellow-100 text-yellow-800';
+                            break;
+                        case 'holiday':
+                            typeLabel = 'Libur';
+                            typeColor = 'bg-green-100 text-green-800';
+                            break;
+                    }
+                    
+                    // Format date range
+                    let dateDisplay = formatDate(event.tanggal_mulai);
+                    if (event.tanggal_mulai !== event.tanggal_selesai) {
+                        dateDisplay = `${formatDate(event.tanggal_mulai)} - ${formatDate(event.tanggal_selesai)}`;
+                    }
+                    
+                    html += `
+                        <div class="bg-white border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="viewEvent('${event.id}')">
+                            <div class="flex justify-between">
+                                <h5 class="font-semibold">${event.judul}</h5>
+                                <span class="px-2 py-1 text-xs rounded-full ${typeColor}">${typeLabel}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mt-1">${dateDisplay}</div>
+                            ${event.lokasi ? `<div class="text-sm text-gray-500 mt-1"><span class="font-medium">Lokasi:</span> ${event.lokasi}</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            eventsListContainer.innerHTML = html;
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString;
+                
+                return date.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString;
+            }
+        }
+        
+        // Show add event modal
+        function showAddEventModal() {
+            // Set default values
+            document.getElementById('modal-title').textContent = 'Tambah Acara Baru';
+            document.getElementById('event-id').value = '';
+            document.getElementById('event-title').value = '';
+            document.getElementById('event-type').value = '';
+            document.getElementById('event-location').value = '';
+            document.getElementById('event-description').value = '';
+            
+            // Set today's date as the default start date
+            const today = new Date();
+            document.getElementById('event-start-date').valueAsDate = today;
+            document.getElementById('event-end-date').valueAsDate = today;
+            
+            // Show modal
+            document.getElementById('event-modal').classList.remove('hidden');
+            
+            // Focus on title input
+            document.getElementById('event-title').focus();
+        }
+        
+        // Hide event modal
+        function hideEventModal() {
+            document.getElementById('event-modal').classList.add('hidden');
+        }
+        
+        // Show view event modal
+        function viewEvent(id) {
+            currentEventId = id;
+            
+            const event = allEvents.find(e => e.id === id);
+            if (!event) {
+                showToast('error', 'Acara tidak ditemukan');
+                return;
+            }
+            
+            // Set event details in modal
+            document.getElementById('view-event-title').textContent = event.judul;
+            
+            // Format date range
+            let dateDisplay = formatDate(event.tanggal_mulai);
+            if (event.tanggal_mulai !== event.tanggal_selesai) {
+                dateDisplay = `${formatDate(event.tanggal_mulai)} - ${formatDate(event.tanggal_selesai)}`;
+            }
+            document.getElementById('view-event-date').textContent = dateDisplay;
+            
+            // Format event type
+            let typeLabel = 'Lainnya';
+            switch (event.jenis) {
+                case 'meeting': typeLabel = 'Rapat'; break;
+                case 'deadline': typeLabel = 'Tenggat Waktu'; break;
+                case 'exam': typeLabel = 'Ujian'; break;
+                case 'holiday': typeLabel = 'Libur'; break;
+            }
+            document.getElementById('view-event-type').textContent = typeLabel;
+            
+            // Set location or show placeholder if empty
+            document.getElementById('view-event-location').textContent = event.lokasi || 'Tidak ada lokasi';
+            
+            // Set description or show placeholder if empty
+            document.getElementById('view-event-description').textContent = event.deskripsi || 'Tidak ada deskripsi';
+            
+            // Show modal
+            document.getElementById('view-event-modal').classList.remove('hidden');
+        }
+        
+        // Hide view event modal
+        function hideViewEventModal(keepEventId = false) {
+            document.getElementById('view-event-modal').classList.add('hidden');
+            if (!keepEventId) {
+                currentEventId = null;
+            }
+        }
+        
+        // Edit current event
+        function editCurrentEvent() {
+            if (!currentEventId) return;
+            
+            const event = allEvents.find(e => e.id === currentEventId);
+            if (!event) {
+                showToast('error', 'Acara tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the event ID
+            hideViewEventModal(true);
+            
+            // Set event data in form
+            document.getElementById('modal-title').textContent = 'Edit Acara';
+            document.getElementById('event-id').value = event.id;
+            document.getElementById('event-title').value = event.judul;
+            document.getElementById('event-start-date').value = event.tanggal_mulai;
+            document.getElementById('event-end-date').value = event.tanggal_selesai;
+            document.getElementById('event-type').value = event.jenis;
+            document.getElementById('event-location').value = event.lokasi;
+            document.getElementById('event-description').value = event.deskripsi;
+            
+            // Show edit modal
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+        
+        // Show delete confirmation
+        function confirmDeleteCurrentEvent() {
+            if (!currentEventId) return;
+            
+            const event = allEvents.find(e => e.id === currentEventId);
+            if (!event) {
+                showToast('error', 'Acara tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the event ID
+            hideViewEventModal(true);
+            
+            // Set event title in confirmation modal
+            document.getElementById('delete-event-title').textContent = event.judul;
+            
+            // Store the event ID in the delete modal's data attribute as backup
+            document.getElementById('delete-modal').dataset.eventId = currentEventId;
+            
+            // Show delete modal
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete modal
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+        
+        // Handle event form submission
+        async function handleEventFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const id = document.getElementById('event-id').value;
+            const judul = document.getElementById('event-title').value;
+            const tanggal_mulai = document.getElementById('event-start-date').value;
+            const tanggal_selesai = document.getElementById('event-end-date').value || tanggal_mulai;
+            const jenis = document.getElementById('event-type').value;
+            const lokasi = document.getElementById('event-location').value;
+            const deskripsi = document.getElementById('event-description').value;
+            
+            // Simple validation
+            if (!judul || !tanggal_mulai || !jenis) {
+                showToast('error', 'Silakan lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            // Validate end date is not before start date
+            if (new Date(tanggal_selesai) < new Date(tanggal_mulai)) {
+                showToast('error', 'Tanggal selesai tidak boleh sebelum tanggal mulai');
+                return;
+            }
+            
+            const saveButton = document.getElementById('save-event-btn');
+            setButtonLoading(saveButton, true);
+            
+            try {
+                // Determine if this is an update or a new event
+                const action = id ? 'updateEvent' : 'createEvent';
+                
+                // Prepare params
+                const params = {
+                    judul,
+                    tanggal_mulai,
+                    tanggal_selesai,
+                    jenis,
+                    lokasi,
+                    deskripsi
+                };
+                
+                // Add ID if updating
+                if (id) {
+                    params.id = id;
+                }
+                
+                // Call API
+                const result = await callApi(action, params);
+                
+                if (result.success) {
+                    // Hide modal
+                    hideEventModal();
+                    
+                    // Update local data and refresh calendar
+                    await loadEvents();
+                    
+                    // Show success message
+                    showToast('success', id ? 'Acara berhasil diperbarui' : 'Acara baru berhasil ditambahkan');
+                } else {
+                    showToast('error', `Gagal ${id ? 'memperbarui' : 'menambahkan'} acara: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving event:', error);
+                showToast('error', `Terjadi kesalahan saat ${id ? 'memperbarui' : 'menambahkan'} acara: ${error.message}`);
+            } finally {
+                setButtonLoading(saveButton, false);
+            }
+        }
+        
+        // Delete event
+        async function handleDeleteEvent() {
+            console.log('handleDeleteEvent called with currentEventId:', currentEventId);
+            
+            // Try to get the event ID from currentEventId or from the modal's data attribute
+            let eventId = currentEventId;
+            
+            // If currentEventId is null, try to get it from the modal's data attribute
+            if (!eventId) {
+                eventId = document.getElementById('delete-modal').dataset.eventId;
+                console.log('Retrieved eventId from modal data attribute:', eventId);
+            }
+            
+            if (!eventId) {
+                console.error('No event ID found');
+                hideDeleteModal();
+                showToast('error', 'ID acara tidak ditemukan');
+                return;
+            }
+            
+            const deleteButton = document.getElementById('confirm-delete-btn');
+            setButtonLoading(deleteButton, true);
+            
+            try {
+                console.log('Calling deleteEvent API with ID:', eventId);
+                
+                // Call API to delete event
+                // Call API to delete event using callApi directly instead of the imported function
+                const result = await callApi('deleteEvent', { id: eventId });
+                
+                console.log('Delete API response:', result);
+                
+                if (result.success) {
+                    // Hide delete modal
+                    hideDeleteModal();
+                    
+                    // Remove event from local data
+                    allEvents = allEvents.filter(e => e.id !== eventId);
+                    
+                    // Refresh calendar and events list
+                    renderCalendar();
+                    renderEventsList(filterEvents(allEvents));
+                    
+                    // Show success message
+                    showToast('success', 'Acara berhasil dihapus');
+                    
+                    // Reset current event ID
+                    currentEventId = null;
+                } else {
+                    showToast('error', `Gagal menghapus acara: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                showToast('error', `Terjadi kesalahan saat menghapus acara: ${error.message}`);
+            } finally {
+                setButtonLoading(deleteButton, false);
+            }
+        }
+        
+        // Helper function to set loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

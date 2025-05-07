@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurnal Pembelajaran - KelasGuru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Custom textarea styles */
+        .shadcn-textarea {
+            display: block;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 100%;
+        }
+        
+        /* Give more horizontal space to the form */
+        #journal-form {
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        
+        .journal-card {
+            height: 100%;
+        }
+        .journal-card .card-body {
+            display: flex;
+            flex-direction: column;
+        }
+        .journal-card .card-text {
+            flex-grow: 1;
+        }
+        .journal-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .btn-loading .spinner-border {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        .btn-loading {
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4 max-w-full">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Jurnal Pembelajaran</h2>
+                    <p class="text-muted">Catat aktivitas dan refleksi pembelajaran</p>
+                </div>
+
+                <!-- Journal Form -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6 max-w-full">
+                    <div class="p-4 bg-primary text-primary-foreground">
+                        <h3 class="text-lg font-semibold">Tambah Catatan Jurnal</h3>
+                        <div id="edit-mode-indicator" class="text-sm mt-1 hidden">
+                            Mode Edit Aktif - Anda sedang mengedit jurnal yang sudah ada
+                        </div>
+                    </div>
+                    <div class="p-4">
+
+                        
+                        <form id="journal-form" class="w-full">
+                            <input type="hidden" id="journal-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-date">Tanggal</label>
+                                    <input type="date" class="shadcn-input w-full" id="journal-date" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-kelas">Kelas</label>
+                                    <select class="shadcn-select w-full" id="journal-kelas" required>
+                                        <option value="">Pilih Kelas</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-materi">Materi</label>
+                                <input type="text" class="shadcn-input w-full" id="journal-materi" required placeholder="Masukkan materi pembelajaran">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-metode">Metode Pembelajaran</label>
+                                    <input type="text" class="shadcn-input w-full" id="journal-metode" placeholder="Metode pembelajaran">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-media">Media Pembelajaran</label>
+                                    <input type="text" class="shadcn-input w-full" id="journal-media" placeholder="Media pembelajaran">
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-kegiatan-pendahuluan">Kegiatan Pendahuluan</label>
+                                <textarea class="shadcn-textarea min-h-[100px] w-full resize-vertical" id="journal-kegiatan-pendahuluan" rows="3" placeholder="Deskripsi kegiatan pendahuluan"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-kegiatan-inti">Kegiatan Inti</label>
+                                <textarea class="shadcn-textarea min-h-[150px] w-full resize-vertical" id="journal-kegiatan-inti" rows="5" required placeholder="Deskripsi kegiatan inti pembelajaran"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-kegiatan-penutup">Kegiatan Penutup</label>
+                                <textarea class="shadcn-textarea min-h-[100px] w-full resize-vertical" id="journal-kegiatan-penutup" rows="3" placeholder="Deskripsi kegiatan penutup"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-evaluasi">Evaluasi</label>
+                                <textarea class="shadcn-textarea min-h-[100px] w-full resize-vertical" id="journal-evaluasi" rows="3" placeholder="Evaluasi pembelajaran"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-refleksi">Refleksi</label>
+                                <textarea class="shadcn-textarea min-h-[120px] w-full resize-vertical" id="journal-refleksi" rows="4" placeholder="Refleksi setelah pembelajaran (opsional)"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="journal-rencana-tindak-lanjut">Rencana Tindak Lanjut</label>
+                                <textarea class="shadcn-textarea min-h-[100px] w-full resize-vertical" id="journal-rencana-tindak-lanjut" rows="3" placeholder="Rencana untuk pembelajaran berikutnya (opsional)"></textarea>
+                            </div>
+                            <div class="flex justify-between">
+                                <button type="button" class="shadcn-btn shadcn-btn-outline" id="reset-form-btn">Reset</button>
+                                <button type="submit" class="shadcn-btn shadcn-btn-primary" id="save-journal-btn">Simpan Jurnal</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Filter/Search Section -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-kelas">
+                                    Filter Kelas
+                                </label>
+                                <select id="filter-kelas" class="shadcn-select">
+                                    <option value="">Semua Kelas</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-date-start">
+                                    Tanggal Mulai
+                                </label>
+                                <input type="date" id="filter-date-start" class="shadcn-input">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-date-end">
+                                    Tanggal Selesai
+                                </label>
+                                <input type="date" id="filter-date-end" class="shadcn-input">
+                            </div>
+                            <div class="md:col-span-3">
+                                <button class="shadcn-btn shadcn-btn-primary w-full" id="filter-btn">Terapkan Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Journal List -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div class="p-4 bg-primary text-primary-foreground flex justify-between items-center">
+                        <h3 class="text-lg font-semibold">Catatan Jurnal</h3>
+                        <button id="manual-reload-btn" class="shadcn-btn shadcn-btn-sm shadcn-btn-secondary">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Muat Ulang
+                        </button>
+                    </div>
+                    <div id="journals-container" class="p-4">
+                        <div class="text-center py-4" id="journals-loading">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <p class="mt-2 text-gray-500">Memuat data jurnal...</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="journals-list">
+                            <!-- Journal cards will be added here dynamically -->
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button class="text-gray-500 hover:text-gray-700 close-modal-btn">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <p class="mb-4">Apakah Anda yakin ingin menghapus catatan jurnal ini?</p>
+            <div class="flex justify-end space-x-2">
+                <button class="shadcn-btn shadcn-btn-outline close-modal-btn">Batal</button>
+                <button class="shadcn-btn shadcn-btn-destructive" id="confirm-delete-btn">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Journal Modal -->
+    <div id="viewJournalModal" class="modal-overlay hidden">
+        <div class="modal max-w-4xl w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Detail Jurnal Pembelajaran</h3>
+                <button class="text-gray-500 hover:text-gray-700 close-modal-btn">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="mb-4">
+                <h4 id="view-journal-topic" class="text-xl font-semibold mb-1"></h4>
+                <p class="text-gray-500">
+                    <span id="view-journal-date"></span> | Kelas: <span id="view-journal-kelas"></span>
+                </p>
+            </div>
+            <div class="mb-4">
+                <h5 class="font-semibold mb-1">Deskripsi Kegiatan:</h5>
+                <p id="view-journal-description" class="text-gray-700 p-3 bg-gray-50 rounded-md min-h-[150px] w-full whitespace-pre-wrap"></p>
+            </div>
+            <div class="mb-4">
+                <h5 class="font-semibold mb-1">Refleksi:</h5>
+                <p id="view-journal-reflection" class="text-gray-700 p-3 bg-gray-50 rounded-md min-h-[120px] w-full whitespace-pre-wrap"></p>
+            </div>
+            <div class="mb-4">
+                <h5 class="font-semibold mb-1">Rencana Tindak Lanjut:</h5>
+                <p id="view-journal-next-plan" class="text-gray-700 p-3 bg-gray-50 rounded-md min-h-[100px] w-full whitespace-pre-wrap"></p>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button class="shadcn-btn shadcn-btn-outline close-modal-btn">Tutup</button>
+                <button class="shadcn-btn shadcn-btn-primary" id="edit-journal-btn">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        // Modal references
+        let deleteModal;
+        let viewJournalModal;
+        
+        // Global state
+        let currentJournalId = null;
+        let allJournals = [];
+        let allClasses = [];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize layout - this will set up the sidebar and header
+            initLayout();
+            updatePageTitle('Jurnal Pembelajaran');
+            
+            // Set up modals
+            setupModals();
+            
+            // Set today's date as default
+            document.getElementById('journal-date').valueAsDate = new Date();
+            
+            // Add manual reload button event listener
+            document.getElementById('manual-reload-btn').addEventListener('click', () => {
+                console.log('Manual reload triggered');
+                loadJournals();
+            });
+
+            // Load data
+            Promise.all([
+                loadKelas(),
+                loadJournals()
+            ]).catch(error => {
+                console.error('Error initializing page:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data. Silakan coba lagi.');
+            });
+
+            // Set up event listeners
+            setupEventListeners();
+        });
+
+        // Set up modals
+        function setupModals() {
+            // Find all modal close buttons and add event listeners
+            document.querySelectorAll('.close-modal-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal-overlay').forEach(modal => {
+                        modal.classList.add('hidden');
+                    });
+                });
+            });
+        }
+
+        // API call function following CORS rules
+        async function callApi(action, params = {}) {
+            try {
+                console.log(`Calling API: ${action} with params:`, params);
+                
+                // Create form data with URLSearchParams for proper encoding
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                
+                // Add other params, ensuring they are strings
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        const value = params[key];
+                        formData.append(key, String(value));
+                    }
+                }
+                
+                // Log the exact data being sent for debugging
+                console.log('Sending data:', formData.toString());
+                
+                // Make fetch request - no custom headers to avoid CORS issues
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                    // Important: No Content-Type header to avoid CORS preflight
+                    // No mode: 'cors' - let browser handle CORS
+                    // No credentials: 'include' - unless you need cookies
+                });
+                
+                // Check for HTTP errors
+                if (!response.ok) {
+                    console.error(`HTTP error: ${response.status}`);
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                // Parse response
+                const result = await response.json();
+                console.log('API Response for', action, ':', result);
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                
+                // Try fallback approach if main fetch fails
+                try {
+                    console.log('Attempting fallback with JSONP-like approach');
+                    return await fetchWithJSONP(action, params);
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                return { 
+                    success: false, 
+                        error: error.message,
+                        detail: 'Both direct and fallback methods failed'
+                    };
+                }
+            }
+        }
+
+        // JSONP-like fallback approach for extreme CORS issues
+        async function fetchWithJSONP(action, params = {}) {
+            return new Promise((resolve, reject) => {
+                // Create a unique callback name
+                const callbackName = 'jsonpCallback_' + Date.now();
+                
+                // Add a timeout to avoid hanging forever
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('JSONP request timed out'));
+                }, 10000);
+                
+                // Cleanup function to remove script and callback
+                function cleanup() {
+                    if (script.parentNode) document.body.removeChild(script);
+                    delete window[callbackName];
+                    clearTimeout(timeout);
+                }
+                
+                // Define the callback function
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+                
+                // Build URL with parameters
+                let url = `${API_URL}?action=${encodeURIComponent(action)}&callback=${callbackName}`;
+                
+                // Add other params to URL
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        url += `&${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`;
+                    }
+                }
+                
+                // Create script element
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function(error) {
+                    cleanup();
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Add script to document to initiate request
+                document.body.appendChild(script);
+            });
+        }
+
+        // Toggle loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Form submission
+            document.getElementById('journal-form').addEventListener('submit', handleJournalFormSubmit);
+            
+            // Reset form button
+            document.getElementById('reset-form-btn').addEventListener('click', resetForm);
+            
+            // Delete confirmation
+            document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteConfirm);
+            
+            // Edit journal button
+            document.getElementById('edit-journal-btn').addEventListener('click', handleEditJournal);
+            
+            // Filter button
+            document.getElementById('filter-btn').addEventListener('click', applyFilters);
+        }
+
+        // Load classes
+        async function loadKelas() {
+            try {
+                const journalKelasSelect = document.getElementById('journal-kelas');
+                const filterKelasSelect = document.getElementById('filter-kelas');
+                
+                // Clear existing options and add loading message
+                journalKelasSelect.innerHTML = '<option value="">Memuat kelas...</option>';
+                filterKelasSelect.innerHTML = '<option value="">Memuat kelas...</option>';
+                
+                console.log('Attempting to load classes...');
+                
+                // Make API request
+                const result = await callApi('getKelas');
+                
+                if (result.success && result.data) {
+                    console.log('Class data received:', result.data);
+                    
+                    allClasses = result.data;
+                    
+                    // Safety check - ensure allClasses is an array
+                    if (!Array.isArray(allClasses)) {
+                        console.error('Data is not an array:', allClasses);
+                        
+                        // Try to convert to array if it's an object with keys
+                        if (allClasses && typeof allClasses === 'object') {
+                            allClasses = Object.values(allClasses);
+                            console.log('Converted object to array:', allClasses);
+                        } else {
+                            allClasses = [];
+                        }
+                    }
+                    
+                    // Clear existing options except the first one
+                    journalKelasSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+                    filterKelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                    
+                    // Check if we have classes
+                    if (allClasses.length === 0) {
+                        console.warn('No classes found in the API response');
+                        return;
+                    }
+                    
+                    // Add class options
+                    let optionsAdded = 0;
+                    allClasses.forEach((kelas, index) => {
+                        // Check for different possible property names (id/ID and nama/name)
+                        const id = kelas.id || kelas.ID || kelas._id || kelas.kelas_id || '';
+                        const nama = kelas.nama || kelas.name || kelas.namaKelas || kelas.nama_kelas || kelas.class_name || 'Kelas ' + (index + 1);
+                        
+                        if (id) {
+                            const optionHtml = `<option value="${id}">${nama}</option>`;
+                            journalKelasSelect.innerHTML += optionHtml;
+                            filterKelasSelect.innerHTML += optionHtml;
+                            optionsAdded++;
+                        }
+                    });
+                    
+                    console.log('Dropdown options populated:', optionsAdded, 'classes');
+                    
+                    // If no options were added despite having classes, something is wrong
+                    if (optionsAdded === 0 && allClasses.length > 0) {
+                        console.error('Failed to add any class options despite having data');
+                        
+                        // Emergency fallback - add options with generic names 
+                        allClasses.forEach((kelas, index) => {
+                            // Create an option with any property that could reasonably be an ID
+                            for (const key in kelas) {
+                                if (key.toLowerCase().includes('id') || key.toLowerCase() === 'id') {
+                                    const id = kelas[key];
+                                    const displayName = `Kelas ${index + 1} (ID: ${id})`;
+                                    journalKelasSelect.innerHTML += `<option value="${id}">${displayName}</option>`;
+                                    filterKelasSelect.innerHTML += `<option value="${id}">${displayName}</option>`;
+                                    break;
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    const errorMsg = result.error || 'No data returned from API';
+                    console.error('Error loading classes:', errorMsg);
+                    showToast('error', 'Gagal memuat data kelas. Silakan coba lagi.');
+                }
+            } catch (error) {
+                console.error('Exception loading classes:', error);
+                showToast('error', 'Gagal memuat data kelas. Silakan coba lagi.');
+            }
+        }
+
+        // Load journals
+        async function loadJournals() {
+            try {
+                document.getElementById('journals-loading').style.display = 'block';
+                document.getElementById('journals-list').style.display = 'none';
+                
+                const filterKelas = document.getElementById('filter-kelas').value;
+                const filterDateStart = document.getElementById('filter-date-start').value;
+                const filterDateEnd = document.getElementById('filter-date-end').value;
+                
+                const params = {};
+                if (filterKelas) params.kelasId = filterKelas;
+                if (filterDateStart) params.dateStart = filterDateStart;
+                if (filterDateEnd) params.dateEnd = filterDateEnd;
+                
+                // Make API request
+                console.log('Calling getJurnal API with params:', params);
+                const result = await callApi('getJurnal', params);
+                console.log('API Response for getJurnal:', result);
+                
+                if (result.success) {
+                    const rawJournals = result.data || [];
+                    console.log('Raw journal data received:', rawJournals);
+                    
+                    // Check if rawJournals is actually an array
+                    if (!Array.isArray(rawJournals)) {
+                        console.error('Journal data is not an array:', rawJournals);
+                        
+                        // Try to convert to array if it's an object
+                        if (rawJournals && typeof rawJournals === 'object') {
+                            const journalsArray = Object.values(rawJournals);
+                            console.log('Converted journal object to array:', journalsArray);
+                            
+                            // Continue with the converted array
+                            allJournals = normalizeJournals(journalsArray);
+                        } else {
+                            // If conversion not possible, use empty array
+                            allJournals = [];
+                        }
+                    } else {
+                        // Normalize all journal data to ensure consistent field names
+                        allJournals = normalizeJournals(rawJournals);
+                    }
+                    
+                    console.log('Normalized journal data:', allJournals);
+                    renderJournals(allJournals);
+                } else {
+                    console.error('Error loading journals:', result.error);
+                    showToast('error', 'Gagal memuat data jurnal. Silakan coba lagi.');
+                }
+            } catch (error) {
+                console.error('Error loading journals:', error);
+                showToast('error', 'Gagal memuat data jurnal. Silakan coba lagi.');
+            } finally {
+                document.getElementById('journals-loading').style.display = 'none';
+                document.getElementById('journals-list').style.display = 'grid';
+            }
+        }
+
+        // Helper function to normalize journal data
+        function normalizeJournals(journalsData) {
+            return journalsData.map(journal => {
+                // Get the date field with fallbacks
+                let journalDate = journal.tanggal || journal.date || journal.created_at || new Date().toISOString().split('T')[0];
+                
+                // Format date correctly - extract just yyyy-MM-dd
+                if (journalDate.includes('T')) {
+                    journalDate = journalDate.split('T')[0];
+                }
+                
+                // Create a normalized journal object with consistent field names
+                return {
+                    id: journal.id || journal._id || journal.journal_id || Date.now().toString(),
+                    kelas_id: journal.kelas_id || journal.kelasId || '',
+                    tanggal: journalDate,
+                    materi: journal.materi || journal.topik || journal.topic || journal.judul || 'Jurnal Tanpa Judul',
+                    metode: journal.metode || '',
+                    media: journal.media || '',
+                    kegiatan_pendahuluan: journal.kegiatan_pendahuluan || '',
+                    kegiatan_inti: journal.kegiatan_inti || journal.deskripsi || journal.description || '',
+                    kegiatan_penutup: journal.kegiatan_penutup || '',
+                    evaluasi: journal.evaluasi || '',
+                    refleksi: journal.refleksi || journal.reflection || '',
+                    rencana_tindak_lanjut: journal.rencana_tindak_lanjut || journal.rencanaLanjut || journal.nextPlan || '',
+                    created_at: journal.created_at || '',
+                    updated_at: journal.updated_at || ''
+                };
+            });
+        }
+
+        // Render journals
+        function renderJournals(journals) {
+            const journalsList = document.getElementById('journals-list');
+            journalsList.innerHTML = '';
+            
+            if (!journals || journals.length === 0) {
+                journalsList.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253M16 6.253v13m0-13C14.832 5.477 13.246 5 11.5 5S8.168 5.477 7 6.253v13C8.168 18.477 9.754 18 11.5 18s3.332.477 4.5 1.253"></path>
+                        </svg>
+                        <p class="mt-3 text-gray-500">Belum ada catatan jurnal. Buat catatan jurnal baru!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort journals by date (newest first)
+            journals.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            
+            try {
+                journals.forEach((journal, index) => {
+                    // Extract essential display fields
+                    const journalId = journal.id || '';
+                    const journalMateri = journal.materi || 'Jurnal Tanpa Judul';
+                    const journalKegiatan = journal.kegiatan_inti || '';
+                    const journalDate = journal.tanggal || new Date().toISOString().split('T')[0];
+                    const journalKelasId = journal.kelas_id || '';
+                    
+                    console.log(`Rendering journal: ${journalMateri}, ID: ${journalId}, Date: ${journalDate}`);
+                    
+                    // Find the class and handle potential undefined values
+                    const matchingClass = allClasses.find(k => 
+                        k.id === journalKelasId || 
+                        k.ID === journalKelasId || 
+                        k._id === journalKelasId || 
+                        k.kelas_id === journalKelasId
+                    );
+                    
+                    const kelasName = matchingClass ? 
+                        (matchingClass.nama || matchingClass.name || matchingClass.namaKelas || matchingClass.nama_kelas || 'Nama Kelas Tidak Tersedia') : 
+                        'Tidak ada kelas';
+                        
+                    const formattedDate = formatDate(journalDate);
+                
+                const journalCard = document.createElement('div');
+                journalCard.className = 'bg-white rounded-lg shadow-md overflow-hidden h-full border border-gray-200';
+                journalCard.innerHTML = `
+                    <div class="p-4 flex flex-col h-full">
+                            <h3 class="font-semibold text-lg mb-1">${journalMateri}</h3>
+                        <p class="text-gray-500 text-sm mb-2">
+                            ${formattedDate} | ${kelasName}
+                        </p>
+                            <p class="text-gray-700 mb-4 flex-grow">${truncateText(journalKegiatan, 100)}</p>
+                        <div class="flex justify-between mt-auto">
+                                <button class="shadcn-btn shadcn-btn-sm shadcn-btn-outline view-journal" data-id="${journalId}">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Detail
+                            </button>
+                            <div class="space-x-1">
+                                    <button class="shadcn-btn shadcn-btn-sm shadcn-btn-outline edit-journal" data-id="${journalId}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                </button>
+                                    <button class="shadcn-btn shadcn-btn-sm shadcn-btn-outline shadcn-btn-destructive delete-journal" data-id="${journalId}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                journalsList.appendChild(journalCard);
+                
+                    // Add event listeners to buttons
+                    const viewButton = journalCard.querySelector('.view-journal');
+                    const editButton = journalCard.querySelector('.edit-journal');
+                    const deleteButton = journalCard.querySelector('.delete-journal');
+                    
+                    if (viewButton) {
+                        viewButton.addEventListener('click', function() {
+                            console.log('View button clicked for journal ID:', journalId);
+                            viewJournal(journalId);
+                        });
+                    }
+                    
+                    if (editButton) {
+                        editButton.addEventListener('click', function() {
+                            console.log('Edit button clicked for journal ID:', journalId);
+                            editJournal(journalId);
+                        });
+                    }
+                    
+                    if (deleteButton) {
+                        deleteButton.addEventListener('click', function() {
+                            console.log('Delete button clicked for journal ID:', journalId);
+                            confirmDelete(journalId);
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error rendering journals:', error);
+                
+                // Show fallback error message in the list
+                journalsList.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-red-500">
+                        <p>Terjadi kesalahan saat menampilkan data jurnal.</p>
+                        <p class="text-sm mt-2">Detail: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Handle journal form submission
+        async function handleJournalFormSubmit(event) {
+            event.preventDefault();
+            
+            try {
+                const saveJournalBtn = document.getElementById('save-journal-btn');
+                setButtonLoading(saveJournalBtn, true);
+                
+                // Get form values
+                const journalId = document.getElementById('journal-id').value;
+                const tanggal = document.getElementById('journal-date').value;
+                const kelas_id = document.getElementById('journal-kelas').value;
+                const materi = document.getElementById('journal-materi').value;
+                const metode = document.getElementById('journal-metode').value;
+                const media = document.getElementById('journal-media').value;
+                const kegiatan_pendahuluan = document.getElementById('journal-kegiatan-pendahuluan').value;
+                const kegiatan_inti = document.getElementById('journal-kegiatan-inti').value;
+                const kegiatan_penutup = document.getElementById('journal-kegiatan-penutup').value;
+                const evaluasi = document.getElementById('journal-evaluasi').value;
+                const refleksi = document.getElementById('journal-refleksi').value;
+                const rencana_tindak_lanjut = document.getElementById('journal-rencana-tindak-lanjut').value;
+                
+
+                
+                // Validate required fields
+                if (!tanggal || !kelas_id || !materi || !kegiatan_inti) {
+                    showToast('error', 'Silahkan lengkapi semua field yang wajib diisi.');
+                    return;
+                }
+                
+                // Ensure date is in the correct format (yyyy-MM-dd)
+                let formattedDate = tanggal;
+                if (formattedDate.includes('T')) {
+                    formattedDate = formattedDate.split('T')[0];
+                }
+                
+
+                
+                const params = {
+                    tanggal: formattedDate,
+                    kelas_id,
+                    materi,
+                    metode,
+                    media,
+                    kegiatan_pendahuluan,
+                    kegiatan_inti,
+                    kegiatan_penutup,
+                    evaluasi,
+                    refleksi,
+                    rencana_tindak_lanjut
+                };
+                
+                // For updates, include the ID
+                if (journalId) {
+                    params.id = journalId;
+                }
+                
+                // Determine API action based on whether this is an edit or new journal
+                const action = journalId ? 'updateJurnal' : 'createJurnal';
+                
+                // Call API with consistent parameter structure
+                console.log(`Calling API: ${action} with params:`, params);
+                const result = await callApi(action, params);
+                console.log(`API ${action} response:`, result);
+                
+                if (result.success) {
+                    showToast('success', journalId ? 'Jurnal berhasil diperbarui!' : 'Jurnal baru berhasil disimpan!');
+                    
+                    // Create normalized journal entry for immediate display
+                    // First, get data from either the API response or form values
+                    const journalData = result.data || {};
+                    
+                    // Create a complete journal object with consistent field naming
+                    const normalizedJournal = {
+                        id: journalData.id || journalId || Date.now().toString(),
+                        kelas_id: kelas_id,
+                        tanggal: formattedDate,
+                        materi: materi,
+                        metode: metode,
+                        media: media,
+                        kegiatan_pendahuluan: kegiatan_pendahuluan,
+                        kegiatan_inti: kegiatan_inti,
+                        kegiatan_penutup: kegiatan_penutup,
+                        evaluasi: evaluasi,
+                        refleksi: refleksi,
+                        rencana_tindak_lanjut: rencana_tindak_lanjut,
+                        created_at: journalData.created_at || new Date().toISOString(),
+                        updated_at: journalData.updated_at || new Date().toISOString()
+                    };
+                    
+                    console.log('Adding/updating normalized journal:', normalizedJournal);
+                    
+                    // Update journals array directly (without reloading from API)
+                    if (journalId) {
+                        // Find and update existing journal
+                        const index = allJournals.findIndex(j => j.id === journalId);
+                        if (index !== -1) {
+                            allJournals[index] = normalizedJournal;
+                            console.log('Updated journal at index', index);
+                        } else {
+                            // If journal with this ID not found, add as new
+                            allJournals.push(normalizedJournal);
+                            console.log('Journal ID not found in array, adding as new');
+                        }
+                    } else {
+                        // Add new journal to beginning of array (newest first)
+                        allJournals.unshift(normalizedJournal);
+                        console.log('Added new journal to beginning of array');
+                    }
+                    
+                    // Re-render journals list
+                    console.log('Re-rendering journal list with count:', allJournals.length);
+                    renderJournals(allJournals);
+                    
+                    // Reset the form
+                    resetForm();
+                } else {
+                    console.error('API error:', result.error);
+                    showToast('error', `Gagal ${journalId ? 'memperbarui' : 'menyimpan'} jurnal: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving journal:', error);
+                showToast('error', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
+            } finally {
+                setButtonLoading(document.getElementById('save-journal-btn'), false);
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('journal-id').value = '';
+            document.getElementById('journal-date').valueAsDate = new Date();
+            document.getElementById('journal-kelas').value = '';
+            document.getElementById('journal-materi').value = '';
+            document.getElementById('journal-metode').value = '';
+            document.getElementById('journal-media').value = '';
+            document.getElementById('journal-kegiatan-pendahuluan').value = '';
+            document.getElementById('journal-kegiatan-inti').value = '';
+            document.getElementById('journal-kegiatan-penutup').value = '';
+            document.getElementById('journal-evaluasi').value = '';
+            document.getElementById('journal-refleksi').value = '';
+            document.getElementById('journal-rencana-tindak-lanjut').value = '';
+            
+            // Reset form title and edit mode indicator
+            const formTitle = document.querySelector('.bg-white.shadow-md.rounded-lg.overflow-hidden.mb-6.max-w-full .p-4.bg-primary h3');
+            if (formTitle) {
+                formTitle.textContent = 'Tambah Catatan Jurnal';
+            }
+            
+            // Hide edit mode indicator
+            const editModeIndicator = document.getElementById('edit-mode-indicator');
+            if (editModeIndicator) {
+                editModeIndicator.classList.add('hidden');
+            }
+            
+            // Change button text
+            document.getElementById('save-journal-btn').textContent = 'Simpan Jurnal';
+        }
+
+        // View journal
+        function viewJournal(id) {
+            const journal = allJournals.find(j => j.id === id || j._id === id);
+            if (!journal) {
+                console.error(`Journal with ID ${id} not found`);
+                showToast('error', 'Jurnal tidak ditemukan');
+                return;
+            }
+            
+            // Format date if needed
+            let journalDate = journal.tanggal || journal.date || journal.created_at || new Date().toISOString().split('T')[0];
+            if (journalDate.includes('T')) {
+                journalDate = journalDate.split('T')[0];
+            }
+            
+            // Find the class
+            const journalKelasId = journal.kelas_id || '';
+            const matchingClass = allClasses.find(k => 
+                k.id === journalKelasId || 
+                k.ID === journalKelasId || 
+                k._id === journalKelasId || 
+                k.kelas_id === journalKelasId
+            );
+            
+            const kelasName = matchingClass ? 
+                (matchingClass.nama || matchingClass.name || matchingClass.namaKelas || matchingClass.nama_kelas || 'Nama Kelas Tidak Tersedia') : 
+                'Tidak ada kelas';
+            
+            document.getElementById('view-journal-topic').textContent = journal.materi || 'Tidak ada judul';
+            document.getElementById('view-journal-date').textContent = formatDate(journalDate);
+            document.getElementById('view-journal-kelas').textContent = kelasName;
+            
+            // Update view content for all fields
+            document.getElementById('view-journal-description').innerHTML = `
+                <h6 class="text-sm font-bold mb-1">Metode:</h6>
+                <p class="mb-2">${journal.metode || '-'}</p>
+                <h6 class="text-sm font-bold mb-1">Media:</h6>
+                <p class="mb-2">${journal.media || '-'}</p>
+                <h6 class="text-sm font-bold mb-1">Pendahuluan:</h6>
+                <p class="mb-2">${journal.kegiatan_pendahuluan || '-'}</p>
+                <h6 class="text-sm font-bold mb-1">Kegiatan Inti:</h6>
+                <p class="mb-3">${journal.kegiatan_inti || '-'}</p>
+                <h6 class="text-sm font-bold mb-1">Penutup:</h6>
+                <p>${journal.kegiatan_penutup || '-'}</p>
+            `;
+            
+            document.getElementById('view-journal-reflection').innerHTML = `
+                <h6 class="text-sm font-bold mb-1">Evaluasi:</h6>
+                <p class="mb-3">${journal.evaluasi || '-'}</p>
+                <h6 class="text-sm font-bold mb-1">Refleksi:</h6>
+                <p>${journal.refleksi || '-'}</p>
+            `;
+            
+            document.getElementById('view-journal-next-plan').textContent = journal.rencana_tindak_lanjut || '-';
+            
+            currentJournalId = id;
+            document.getElementById('viewJournalModal').classList.remove('hidden');
+        }
+
+        // Handle edit button in view modal
+        function handleEditJournal() {
+            document.getElementById('viewJournalModal').classList.add('hidden');
+            editJournal(currentJournalId);
+        }
+
+        // Edit journal
+        function editJournal(id) {
+            console.log('editJournal called with ID:', id);
+            
+            if (!id) {
+                console.error('No journal ID provided to editJournal function');
+                showToast('error', 'ID jurnal tidak ditemukan');
+                return;
+            }
+            
+            console.log('Searching for journal with ID:', id, 'in array of', allJournals.length, 'journals');
+            
+            const journal = allJournals.find(j => j.id === id || j._id === id);
+            
+            if (!journal) {
+                console.error(`Journal with ID ${id} not found in the journals array`);
+                showToast('error', 'Jurnal tidak ditemukan');
+                return;
+            }
+            
+            console.log('Journal found:', journal);
+            
+            // Handle date format - extract just yyyy-MM-dd
+            let journalDate = journal.tanggal || journal.date || journal.created_at || new Date().toISOString().split('T')[0];
+            if (journalDate.includes('T')) {
+                journalDate = journalDate.split('T')[0];
+            }
+            console.log('Setting date value:', journalDate);
+            
+            try {
+                // Set form values based on journal data
+                document.getElementById('journal-id').value = id;
+                document.getElementById('journal-date').value = journalDate;
+                document.getElementById('journal-kelas').value = journal.kelas_id || '';
+                document.getElementById('journal-materi').value = journal.materi || '';
+                document.getElementById('journal-metode').value = journal.metode || '';
+                document.getElementById('journal-media').value = journal.media || '';
+                document.getElementById('journal-kegiatan-pendahuluan').value = journal.kegiatan_pendahuluan || '';
+                document.getElementById('journal-kegiatan-inti').value = journal.kegiatan_inti || '';
+                document.getElementById('journal-kegiatan-penutup').value = journal.kegiatan_penutup || '';
+                document.getElementById('journal-evaluasi').value = journal.evaluasi || '';
+                document.getElementById('journal-refleksi').value = journal.refleksi || '';
+                document.getElementById('journal-rencana-tindak-lanjut').value = journal.rencana_tindak_lanjut || '';
+                
+                // Get the form container and highlight it
+                const formContainer = document.querySelector('.bg-white.shadow-md.rounded-lg.overflow-hidden.mb-6.max-w-full');
+                
+                if (formContainer) {
+                    // Add highlight animation to the form
+                    formContainer.style.transition = 'box-shadow 0.3s, transform 0.3s';
+                    formContainer.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.5)';
+                    formContainer.style.transform = 'translateY(5px)';
+                    
+                    // Reset the animation after a delay
+                    setTimeout(() => {
+                        formContainer.style.boxShadow = '';
+                        formContainer.style.transform = '';
+                    }, 1500);
+                    
+                    // Show the edit mode indicator
+                    const editModeIndicator = document.getElementById('edit-mode-indicator');
+                    if (editModeIndicator) {
+                        editModeIndicator.classList.remove('hidden');
+                    }
+                    
+                    // Update form title to indicate editing mode
+                    const formTitle = formContainer.querySelector('.p-4.bg-primary h3');
+                    if (formTitle) {
+                        console.log('Form title element found:', formTitle);
+                        formTitle.textContent = 'Edit Catatan Jurnal';
+                    } else {
+                        console.log('Form title element not found. Looking for alternative selectors...');
+                        // Try alternative selectors
+                        const alternativeTitle = formContainer.querySelector('h3') || 
+                                                formContainer.querySelector('.bg-primary h3') ||
+                                                formContainer.querySelector('.text-primary-foreground h3');
+                        if (alternativeTitle) {
+                            console.log('Alternative title element found:', alternativeTitle);
+                            alternativeTitle.textContent = 'Edit Catatan Jurnal';
+                        } else {
+                            console.log('No title element found in the form container');
+                        }
+                    }
+                } else {
+                    console.log('Form container not found');
+                }
+            
+            // Change button text
+            document.getElementById('save-journal-btn').textContent = 'Perbarui Jurnal';
+            
+                // Show a toast notification
+                showToast('info', 'Mode edit aktif. Anda sedang mengedit jurnal.');
+                
+                // Scroll to form with offset to ensure it's visible
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                
+                console.log('Form successfully populated for editing');
+            } catch (error) {
+                console.error('Error setting form values:', error);
+                showToast('error', 'Gagal memuat form edit. Silakan coba lagi.');
+            }
+        }
+
+        // Confirm delete
+        function confirmDelete(id) {
+            currentJournalId = id;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        // Handle delete confirmation
+        async function handleDeleteConfirm() {
+            try {
+                if (!currentJournalId) return;
+                
+                const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+                setButtonLoading(confirmDeleteBtn, true);
+                
+                const result = await callApi('deleteJurnal', { id: currentJournalId });
+                
+                if (result.success) {
+                    showToast('success', 'Jurnal berhasil dihapus!');
+                    document.getElementById('deleteModal').classList.add('hidden');
+                    loadJournals();
+                } else {
+                    showToast('error', `Gagal menghapus jurnal: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting journal:', error);
+                showToast('error', 'Terjadi kesalahan saat menghapus data. Silakan coba lagi.');
+            } finally {
+                setButtonLoading(document.getElementById('confirm-delete-btn'), false);
+                currentJournalId = null;
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            loadJournals();
+        }
+
+        // Helper: Format date
+        function formatDate(dateString) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Helper: Truncate text
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+    </script>
+</body>
+</html> 

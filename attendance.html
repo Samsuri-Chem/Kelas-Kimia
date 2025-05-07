@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presensi - Teacher Administration Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Presensi Siswa</h2>
+                    <div class="flex space-x-2">
+                        <button id="take-attendance-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Isi Presensi Hari Ini
+                        </button>
+                        <button id="print-report-btn" class="shadcn-btn shadcn-btn-outline flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                            </svg>
+                            Cetak Laporan
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-class">
+                                    Kelas
+                                </label>
+                                <select id="filter-class" class="shadcn-select">
+                                    <option value="">Semua Kelas</option>
+                                    <!-- Will be populated from classes data -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-date">
+                                    Tanggal
+                                </label>
+                                <input type="date" id="filter-date" class="shadcn-input">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-status">
+                                    Status
+                                </label>
+                                <select id="filter-status" class="shadcn-select">
+                                    <option value="">Semua Status</option>
+                                    <option value="Hadir">Hadir</option>
+                                    <option value="Izin">Izin</option>
+                                    <option value="Sakit">Sakit</option>
+                                    <option value="Alfa">Alfa (Tanpa Keterangan)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Total Siswa</h3>
+                        <p class="text-2xl font-bold" id="total-students">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Hadir</h3>
+                        <p class="text-2xl font-bold text-green-600" id="present-count">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Izin/Sakit</h3>
+                            <p class="text-2xl font-bold text-yellow-600" id="excused-count">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Alfa</h3>
+                        <p class="text-2xl font-bold text-red-600" id="absent-count">0</p>
+                    </div>
+                </div>
+                
+                <!-- Attendance table -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div id="attendance-container" class="w-full overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="attendance-table-body">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        Memuat data presensi...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Take Attendance Modal -->
+    <div id="attendance-modal" class="modal-overlay hidden">
+        <div class="modal max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Isi Presensi - <span id="attendance-date"></span></h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="modal-class">
+                    Pilih Kelas
+                </label>
+                <select id="modal-class" class="shadcn-select">
+                    <option value="">Pilih Kelas</option>
+                    <!-- Will be populated from classes data -->
+                </select>
+            </div>
+            
+            <form id="attendance-form">
+                <div class="mb-4 overflow-y-auto max-h-96">
+                    <table class="min-w-full divide-y divide-gray-200 mb-2">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-list-body" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="3" class="px-3 py-2 text-center text-gray-500">
+                                    Pilih kelas terlebih dahulu
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Attendance Modal -->
+    <div id="edit-attendance-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Edit Presensi</h3>
+                <button id="close-edit-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="edit-attendance-form">
+                <input type="hidden" id="edit-attendance-id">
+                <input type="hidden" id="edit-student-id">
+                
+                <div class="mb-4">
+                    <p class="text-gray-700 mb-1">Siswa:</p>
+                    <p id="edit-student-name" class="font-semibold"></p>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-gray-700 mb-1">Tanggal:</p>
+                    <p id="edit-attendance-date" class="font-semibold"></p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-status">
+                        Status
+                    </label>
+                    <select id="edit-status" class="shadcn-select" required>
+                        <option value="Hadir">Hadir</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Sakit">Sakit</option>
+                        <option value="Alfa">Alfa (Tanpa Keterangan)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-keterangan">
+                        Keterangan
+                    </label>
+                    <textarea id="edit-keterangan" class="shadcn-input" placeholder="Keterangan (opsional)" rows="3"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="edit-cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" class="shadcn-btn shadcn-btn-primary">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus data presensi untuk <span id="delete-student-name" class="font-semibold"></span> pada <span id="delete-attendance-date" class="font-semibold"></span>?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Print Report Modal -->
+    <div id="print-report-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Cetak Laporan Presensi</h3>
+                <button id="close-print-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="print-class">
+                    Kelas
+                </label>
+                <select id="print-class" class="shadcn-select w-full">
+                    <option value="">Pilih Kelas</option>
+                    <!-- Will be populated from classes data -->
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex items-center mb-2">
+                    <input type="radio" id="print-single-day" name="date-range-type" value="single" checked class="mr-2">
+                    <label for="print-single-day" class="text-gray-700 text-sm font-bold">Tanggal Tunggal</label>
+                </div>
+                <input type="date" id="print-date" class="shadcn-input w-full">
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex items-center mb-2">
+                    <input type="radio" id="print-date-range" name="date-range-type" value="range" class="mr-2">
+                    <label for="print-date-range" class="text-gray-700 text-sm font-bold">Rentang Tanggal</label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-gray-700 text-xs mb-1" for="print-start-date">Tanggal Mulai</label>
+                        <input type="date" id="print-start-date" class="shadcn-input w-full">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-xs mb-1" for="print-end-date">Tanggal Selesai</label>
+                        <input type="date" id="print-end-date" class="shadcn-input w-full">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="cancel-print-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-print-btn" class="shadcn-btn shadcn-btn-primary">
+                    Cetak Laporan
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize layout
+            initLayout();
+            updatePageTitle('Presensi Siswa');
+            
+            // Set today's date as the default filter
+            const today = new Date();
+            document.getElementById('filter-date').valueAsDate = today;
+            document.getElementById('attendance-date').textContent = formatDate(today);
+            
+            // Set today's date for print report
+            document.getElementById('print-date').valueAsDate = today;
+            document.getElementById('print-start-date').valueAsDate = today;
+            
+            // Set end date to today by default
+            document.getElementById('print-end-date').valueAsDate = today;
+            
+            // Load data
+            loadData();
+            
+            // Event listeners
+            document.getElementById('take-attendance-btn').addEventListener('click', showAttendanceModal);
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+            document.getElementById('attendance-form').addEventListener('submit', handleSubmit);
+            
+            // Edit modal event listeners
+            document.getElementById('close-edit-modal-btn').addEventListener('click', hideEditModal);
+            document.getElementById('edit-cancel-btn').addEventListener('click', hideEditModal);
+            document.getElementById('edit-attendance-form').addEventListener('submit', handleEditSubmit);
+            
+            // Delete modal event listeners
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', deleteAttendance);
+            
+            // Print report modal event listeners
+            document.getElementById('print-report-btn').addEventListener('click', showPrintReportModal);
+            document.getElementById('close-print-modal-btn').addEventListener('click', hidePrintReportModal);
+            document.getElementById('cancel-print-btn').addEventListener('click', hidePrintReportModal);
+            document.getElementById('confirm-print-btn').addEventListener('click', generatePrintReport);
+            
+            // Filter event listeners
+            document.getElementById('filter-class').addEventListener('change', applyFilters);
+            document.getElementById('filter-date').addEventListener('change', applyFilters);
+            document.getElementById('filter-status').addEventListener('change', applyFilters);
+            
+            // Modal class selection
+            document.getElementById('modal-class').addEventListener('change', loadStudentsForClass);
+        });
+        
+        // Global variables
+        let attendanceRecords = [];
+        let students = [];
+        let classes = [];
+        
+        // Load all necessary data
+        async function loadData() {
+            try {
+                showLoading('attendance-table-body');
+                
+                // Check for cached data first
+                const cachedClasses = localStorage.getItem('admin_classes');
+                const classesCache = cachedClasses ? JSON.parse(cachedClasses) : null;
+                const cacheTimestamp = localStorage.getItem('admin_classes_timestamp');
+                const cacheAge = cacheTimestamp ? (Date.now() - parseInt(cacheTimestamp)) : Infinity;
+                const cacheValid = cacheAge < 3600000; // 1 hour cache validity
+                
+                // Load classes, students, and attendance in parallel
+                const [classesResult, studentsResult, presensiResult, detailPresensiResult] = await Promise.all([
+                    // Classes data - use cache if valid, otherwise fetch
+                    (async () => {
+                        if (classesCache && cacheValid) {
+                            console.log('Using cached classes data');
+                            return { success: true, data: classesCache };
+                        }
+                        
+                        try {
+                            const response = await getKelas();
+                            if (response && response.success) {
+                                // Cache valid response
+                                localStorage.setItem('admin_classes', JSON.stringify(response.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                                return response;
+                            }
+                            throw new Error('Failed to load classes');
+                        } catch (error) {
+                            console.warn('Error in getKelas, trying fallback:', error);
+                            // Fallback
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getKelas');
+                            
+                            const fallbackResponse = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                            
+                            if (fallbackResponse && fallbackResponse.success) {
+                                localStorage.setItem('admin_classes', JSON.stringify(fallbackResponse.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                            }
+                            return fallbackResponse;
+                        }
+                    })(),
+                    
+                    // Students data
+                    (async () => {
+                        try {
+                            const response = await getSiswa();
+                            if (response && response.success) return response;
+                            throw new Error('Failed to load students');
+                        } catch (error) {
+                            console.warn('Error in getSiswa, trying fallback:', error);
+                            // Fallback
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getSiswa');
+                            
+                            return fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        }
+                    })(),
+                    
+                    // Presensi data (pertemuan)
+                    (async () => {
+                        try {
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getPresensi');
+                            
+                            return fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        } catch (error) {
+                            console.error('Error loading presensi:', error);
+                            return { success: false, error: error.toString() };
+                        }
+                    })(),
+                    
+                    // DetailPresensi data (kehadiran siswa)
+                    (async () => {
+                        try {
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getDetailPresensi');
+                            
+                            return fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        } catch (error) {
+                            console.error('Error loading detail presensi:', error);
+                            return { success: false, error: error.toString() };
+                        }
+                    })()
+                ]);
+                
+                // Process results
+                if (classesResult && classesResult.success) {
+                    classes = classesResult.data || [];
+                    populateClassDropdowns();
+                }
+                
+                if (studentsResult && studentsResult.success) {
+                    students = studentsResult.data || [];
+                    // Normalize student IDs
+                    students = students.map(student => {
+                        const id = student.id || student.siswa_id || '';
+                        const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                        return {
+                            ...student,
+                            id: String(safeId),
+                            siswa_id: String(safeId)
+                        };
+                    });
+                    
+                    updateStatistics();
+                }
+                
+                // Process presensi data
+                let presensiData = [];
+                let detailPresensiData = [];
+                
+                if (presensiResult && presensiResult.success) {
+                    presensiData = presensiResult.data || [];
+                    console.log('Loaded presensi data:', presensiData);
+                }
+                
+                if (detailPresensiResult && detailPresensiResult.success) {
+                    detailPresensiData = detailPresensiResult.data || [];
+                    console.log('Loaded detail presensi data:', detailPresensiData);
+                }
+                
+                // Combine data from both tables
+                attendanceRecords = [];
+                
+                // If we have DetailPresensi data, use that
+                if (detailPresensiData && detailPresensiData.length > 0) {
+                    detailPresensiData.forEach(detail => {
+                        const presensi = presensiData.find(p => p.id === detail.presensi_id);
+                        
+                        if (presensi) {
+                            attendanceRecords.push({
+                                id: detail.id,
+                                presensi_id: detail.presensi_id,
+                                siswa_id: detail.siswa_id,
+                                tanggal: presensi.tanggal,
+                                jam_mulai: presensi.jam_mulai,
+                                jam_selesai: presensi.jam_selesai,
+                                kelas_id: presensi.kelas_id,
+                                status: detail.status,
+                                keterangan: detail.keterangan,
+                                created_at: detail.created_at,
+                                updated_at: detail.updated_at
+                            });
+                        }
+                    });
+                } else {
+                    console.warn('No DetailPresensi data found, using empty array');
+                }
+                
+                console.log('Combined attendance records:', attendanceRecords);
+                renderAttendanceTable(attendanceRecords);
+                updateStatistics();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('attendance-table-body', 'Terjadi kesalahan saat memuat data. Periksa konsol untuk detail.');
+            }
+        }
+        
+        // Populate class dropdowns
+        function populateClassDropdowns() {
+            const filterClassSelect = document.getElementById('filter-class');
+            const modalClassSelect = document.getElementById('modal-class');
+            const printClassSelect = document.getElementById('print-class');
+            
+            // Clear existing options
+            filterClassSelect.innerHTML = '<option value="">Semua Kelas</option>';
+            modalClassSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+            printClassSelect.innerHTML = '<option value="">Pilih Kelas</option>';
+            
+            if (classes.length === 0) {
+                console.warn('No classes available for dropdowns');
+                return;
+            }
+            
+            classes.forEach(kelas => {
+                const id = kelas.id || kelas.kelas_id || '';
+                const nama = kelas.nama || kelas.nama_kelas || 'Unknown';
+                
+                const option = `<option value="${id}">${nama}</option>`;
+                filterClassSelect.innerHTML += option;
+                modalClassSelect.innerHTML += option;
+                printClassSelect.innerHTML += option;
+            });
+        }
+        
+        // Render attendance table
+        function renderAttendanceTable(data) {
+            const tableBody = document.getElementById('attendance-table-body');
+            
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        Belum ada data presensi
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+            
+            console.log('Rendering attendance table with data:', data);
+            
+            // Apply filters
+            data = applyFiltersToData(data);
+            
+            console.log('Filtered data to render:', data);
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        Tidak ada data presensi yang sesuai dengan filter
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            data.forEach(record => {
+                // Handle different property naming conventions
+                const id = record.id || record.presensi_id;
+                const siswaId = record.siswa_id || '';
+                const tanggal = record.tanggal || new Date().toISOString();
+                const status = record.status || 'Hadir';
+                const keterangan = record.keterangan || '';
+                
+                console.log(`Rendering record ID: ${id}, siswaId: ${siswaId}, tanggal: ${tanggal}, status: ${status}`);
+                
+                // Find student information
+                const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+                
+                console.log(`Found student: ${JSON.stringify(siswa)}, name: ${namaSiswa}`);
+                
+                // Find class info
+                let kelasNama = '-';
+                if (siswa) {
+                    const kelasId = siswa.kelas_id || siswa.kelas || '';
+                    const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                    kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '-') : '-';
+                }
+                
+                // Generate a status badge with appropriate color
+                let statusBadge = '';
+                if (status === 'Hadir') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Hadir</span>';
+                } else if (status === 'Izin') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Izin</span>';
+                } else if (status === 'Sakit') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Sakit</span>';
+                } else if (status === 'Alfa') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Alfa</span>';
+                } else {
+                    statusBadge = `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${status}</span>`;
+                }
+                
+                // Ensure ID is not undefined or empty
+                const safeId = id ? id : 'no-id-' + Math.random().toString(36).substring(2, 9);
+                
+                html += `
+                <tr data-attendance-id="${safeId}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${namaSiswa}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${kelasNama}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${formatDate(tanggal)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${keterangan || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showEditModal('${safeId}')">
+                            Edit
+                        </button>
+                        <button class="text-red-600 hover:text-red-900" onclick="showDeleteModal('${safeId}')">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+            console.log('Table has been rendered with rows:', data.length);
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString;
+                
+                return date.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString;
+            }
+        }
+        
+        // Format date for input
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return '';
+                
+                return date.toISOString().split('T')[0];
+            } catch (error) {
+                console.error('Error formatting date for input:', error);
+                return '';
+            }
+        }
+        
+        // Apply filters to data and update the table
+        function applyFilters() {
+            renderAttendanceTable(attendanceRecords);
+            updateStatistics();
+        }
+        
+        // Apply filters to data and return filtered data
+        function applyFiltersToData(data) {
+            const classFilter = document.getElementById('filter-class').value;
+            const dateFilter = document.getElementById('filter-date').value;
+            const statusFilter = document.getElementById('filter-status').value;
+            
+            console.log('Applying filters - class:', classFilter, 'date:', dateFilter, 'status:', statusFilter);
+            console.log('Data before filtering:', data.length, 'records');
+            
+            let filteredData = data;
+            
+            // Apply date filter
+            if (dateFilter) {
+                const filterDate = new Date(dateFilter);
+                console.log('Filtering by date:', filterDate.toISOString());
+                
+                filteredData = filteredData.filter(record => {
+                    // Use try-catch to handle potential date parsing errors
+                    try {
+                        const recordDate = new Date(record.tanggal);
+                        console.log('Record date:', record.tanggal, 'parsed as:', recordDate);
+                        
+                        // Compare dates using only year, month, day
+                        const recordDateStr = recordDate.toISOString().split('T')[0];
+                        const filterDateStr = filterDate.toISOString().split('T')[0];
+                        
+                        console.log('Comparing dates:', recordDateStr, 'vs', filterDateStr);
+                        return recordDateStr === filterDateStr;
+                    } catch (error) {
+                        console.error('Error parsing date for record:', record, error);
+                        return false;
+                    }
+                });
+                
+                console.log('After date filter:', filteredData.length, 'records');
+            }
+            
+            // Apply class filter
+            if (classFilter) {
+                console.log('Filtering by class ID:', classFilter);
+                
+                filteredData = filteredData.filter(record => {
+                    const siswaId = record.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) {
+                        console.log('Student not found for ID:', siswaId);
+                        return false;
+                    }
+                    
+                    const kelasId = siswa.kelas_id || siswa.kelas || '';
+                    console.log('Student class ID:', kelasId, 'comparing with filter:', classFilter);
+                    return kelasId === classFilter;
+                });
+                
+                console.log('After class filter:', filteredData.length, 'records');
+            }
+            
+            // Apply status filter
+            if (statusFilter) {
+                console.log('Filtering by status:', statusFilter);
+                
+                filteredData = filteredData.filter(record => {
+                    console.log('Record status:', record.status, 'comparing with filter:', statusFilter);
+                    return record.status === statusFilter;
+                });
+                
+                console.log('After status filter:', filteredData.length, 'records');
+            }
+            
+            return filteredData;
+        }
+        
+        // Update statistics
+        function updateStatistics() {
+            const classFilter = document.getElementById('filter-class').value;
+            const dateFilter = document.getElementById('filter-date').value;
+            
+            // Filter students by class if needed
+            let filteredStudents = students;
+            if (classFilter) {
+                filteredStudents = students.filter(student => {
+                    const kelasId = student.kelas_id || student.kelas || '';
+                    return kelasId === classFilter;
+                });
+            }
+            
+            // Total students
+            document.getElementById('total-students').textContent = filteredStudents.length;
+            
+            // Filter attendance records
+            let filteredRecords = attendanceRecords;
+            
+            // Apply date filter for attendance stats
+            if (dateFilter) {
+                const filterDate = new Date(dateFilter);
+                filteredRecords = filteredRecords.filter(record => {
+                    const recordDate = new Date(record.tanggal);
+                    return recordDate.toDateString() === filterDate.toDateString();
+                });
+            }
+            
+            // Apply class filter for attendance stats
+            if (classFilter) {
+                filteredRecords = filteredRecords.filter(record => {
+                    const siswaId = record.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const kelasId = siswa.kelas_id || siswa.kelas || '';
+                    return kelasId === classFilter;
+                });
+            }
+            
+            // Count by status
+            let presentCount = 0;
+            let excusedCount = 0;
+            let absentCount = 0;
+            
+            filteredRecords.forEach(record => {
+                const status = record.status || '';
+                
+                if (status === 'Hadir') {
+                    presentCount++;
+                } else if (status === 'Izin' || status === 'Sakit') {
+                    excusedCount++;
+                } else if (status === 'Alfa') {
+                    absentCount++;
+                }
+            });
+            
+            // Update count displays
+            document.getElementById('present-count').textContent = presentCount;
+            document.getElementById('excused-count').textContent = excusedCount;
+            document.getElementById('absent-count').textContent = absentCount;
+        }
+        
+        // Helper functions for showing loading/error states
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Memuat data presensi...
+                    </td>
+                </tr>
+                `;
+            }
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <svg class="h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        ${message}
+                    </td>
+                </tr>
+                `;
+            }
+        }
+        
+        // Show modal for taking attendance
+        function showAttendanceModal() {
+            // Set today's date
+            const today = new Date();
+            document.getElementById('attendance-date').textContent = formatDate(today);
+            
+            // Reset class selection
+            document.getElementById('modal-class').value = '';
+            document.getElementById('student-list-body').innerHTML = `
+                <tr>
+                    <td colspan="3" class="px-3 py-2 text-center text-gray-500">
+                        Pilih kelas terlebih dahulu
+                    </td>
+                </tr>
+            `;
+            
+            document.getElementById('attendance-modal').classList.remove('hidden');
+        }
+        
+        // Load students for selected class in the attendance modal
+        function loadStudentsForClass() {
+            const kelasId = document.getElementById('modal-class').value;
+            const studentListBody = document.getElementById('student-list-body');
+            
+            if (!kelasId) {
+                studentListBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-3 py-2 text-center text-gray-500">
+                            Pilih kelas terlebih dahulu
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Filter students by class
+            const classStudents = students.filter(student => {
+                const studentKelasId = student.kelas_id || student.kelas || '';
+                return studentKelasId === kelasId;
+            });
+            
+            if (classStudents.length === 0) {
+                studentListBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-3 py-2 text-center text-gray-500">
+                            Tidak ada siswa di kelas ini
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Sort students by name
+            classStudents.sort((a, b) => {
+                const nameA = a.nama || '';
+                const nameB = b.nama || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Check for existing attendance records for today
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            let html = '';
+            classStudents.forEach(student => {
+                const studentId = student.id || student.siswa_id;
+                const studentName = student.nama || 'Unnamed';
+                
+                // Check if there's an existing attendance record for today
+                const existingRecord = attendanceRecords.find(record => {
+                    const recordDate = new Date(record.tanggal);
+                    const recordDateStr = recordDate.toISOString().split('T')[0];
+                    const recordStudentId = record.siswa_id || '';
+                    
+                    return recordDateStr === todayStr && (recordStudentId === studentId);
+                });
+                
+                const existingStatus = existingRecord ? existingRecord.status : 'Hadir';
+                const existingRemarks = existingRecord ? existingRecord.keterangan || '' : '';
+                
+                html += `
+                <tr data-student-id="${studentId}">
+                    <td class="px-3 py-2">
+                        <div class="font-medium">${studentName}</div>
+                    </td>
+                    <td class="px-3 py-2">
+                        <select name="status-${studentId}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <option value="Hadir" ${existingStatus === 'Hadir' ? 'selected' : ''}>Hadir</option>
+                            <option value="Izin" ${existingStatus === 'Izin' ? 'selected' : ''}>Izin</option>
+                            <option value="Sakit" ${existingStatus === 'Sakit' ? 'selected' : ''}>Sakit</option>
+                            <option value="Alfa" ${existingStatus === 'Alfa' ? 'selected' : ''}>Alfa</option>
+                        </select>
+                    </td>
+                    <td class="px-3 py-2">
+                        <input type="text" name="keterangan-${studentId}" value="${existingRemarks}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Keterangan (opsional)">
+                    </td>
+                </tr>
+                `;
+            });
+            
+            studentListBody.innerHTML = html;
+        }
+        
+        // Hide the modal
+        function hideModal() {
+            document.getElementById('attendance-modal').classList.add('hidden');
+        }
+        
+        // Show modal for editing attendance
+        function showEditModal(id) {
+            console.log("showEditModal called with ID:", id);
+            
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const record = attendanceRecords.find(r => String(r.id) === idStr || String(r.presensi_id) === idStr);
+            
+            if (!record) {
+                console.error("Attendance record not found with ID:", id);
+                showToast('error', "Error: Attendance record not found with ID: " + id);
+                return;
+            }
+            
+            // Handle different property naming conventions
+            const siswaId = record.siswa_id || '';
+            const status = record.status || 'Hadir';
+            const keterangan = record.keterangan || '';
+            const tanggal = record.tanggal || '';
+            
+            // Find student details
+            const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+            const siswaName = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+            
+            document.getElementById('edit-attendance-id').value = id;
+            document.getElementById('edit-student-id').value = siswaId;
+            document.getElementById('edit-student-name').textContent = siswaName;
+            document.getElementById('edit-attendance-date').textContent = formatDate(tanggal);
+            document.getElementById('edit-status').value = status;
+            document.getElementById('edit-keterangan').value = keterangan;
+            
+            document.getElementById('edit-attendance-modal').classList.remove('hidden');
+        }
+        
+        // Hide edit modal
+        function hideEditModal() {
+            document.getElementById('edit-attendance-modal').classList.add('hidden');
+        }
+        
+        // Show delete confirmation modal
+        function showDeleteModal(id) {
+            console.log("showDeleteModal called with ID:", id);
+            
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const record = attendanceRecords.find(r => String(r.id) === idStr || String(r.presensi_id) === idStr);
+            
+            if (!record) {
+                console.error("Attendance record not found with ID:", id);
+                showToast('error', "Error: Attendance record not found with ID: " + id);
+                return;
+            }
+            
+            // Handle different property naming conventions
+            const siswaId = record.siswa_id || '';
+            const tanggal = record.tanggal || '';
+            
+            // Find student details
+            const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+            const siswaName = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+            
+            // Set global deleteAttendanceId
+            window.deleteAttendanceId = id;
+            document.getElementById('delete-student-name').textContent = siswaName;
+            document.getElementById('delete-attendance-date').textContent = formatDate(tanggal);
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete confirmation modal
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+        
+        // Helper function to set loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+
+        // Handle attendance form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(submitButton, true);
+            
+            const kelasId = document.getElementById('modal-class').value;
+            if (!kelasId) {
+                showToast('error', 'Silakan pilih kelas terlebih dahulu');
+                setButtonLoading(submitButton, false);
+                return;
+            }
+            
+            // Get all student rows
+            const studentRows = document.querySelectorAll('#student-list-body tr[data-student-id]');
+            if (studentRows.length === 0) {
+                showToast('error', 'Tidak ada siswa untuk diedit kehadiran');
+                setButtonLoading(submitButton, false);
+                return;
+            }
+            
+            // Prepare data to save
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const attendanceDate = today.toISOString();
+            
+            try {
+                // 1. First create or find presensi record for this class and date
+                let presensiId;
+                
+                // Check if presensi already exists for this class and date
+                const existingPresensi = attendanceRecords.find(record => {
+                    if (!record.tanggal || !record.kelas_id) return false;
+                    
+                    const recordDate = new Date(record.tanggal);
+                    const recordDateStr = recordDate.toISOString().split('T')[0];
+                    return recordDateStr === todayStr && record.kelas_id === kelasId;
+                });
+                
+                if (existingPresensi && existingPresensi.presensi_id) {
+                    presensiId = existingPresensi.presensi_id;
+                    console.log('Using existing presensi record:', presensiId);
+                } else {
+                    // Create new presensi record for today's class
+                    const presensiData = {
+                        kelas_id: kelasId,
+                        tanggal: attendanceDate,
+                        jam_mulai: new Date().toTimeString().split(' ')[0],
+                        jam_selesai: '',
+                        materi: 'Presensi Siswa',
+                        catatan: ''
+                    };
+                    
+                    console.log('Creating new presensi record:', presensiData);
+                    
+                    // Call API to create presensi
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'createPresensi');
+                    
+                    for (const key in presensiData) {
+                        formData.append(key, presensiData[key]);
+                    }
+                    
+                    const presensiResponse = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json());
+                    
+                    if (!presensiResponse || !presensiResponse.success) {
+                        throw new Error('Failed to create presensi record');
+                    }
+                    
+                    presensiId = presensiResponse.data.id;
+                    console.log('Created new presensi ID:', presensiId);
+                }
+                
+                if (!presensiId) {
+                    throw new Error('No presensi ID available');
+                }
+                
+                // 2. Now create/update DetailPresensi records for each student
+                let savedCount = 0;
+                let errorCount = 0;
+                let savedRecords = [];
+                
+                // Process each student
+                for (const row of studentRows) {
+                    const studentId = row.getAttribute('data-student-id');
+                    if (!studentId) continue;
+                    
+                    const statusSelect = row.querySelector(`select[name="status-${studentId}"]`);
+                    const keteranganInput = row.querySelector(`input[name="keterangan-${studentId}"]`);
+                    
+                    if (!statusSelect) continue;
+                    
+                    const status = statusSelect.value;
+                    const keterangan = keteranganInput ? keteranganInput.value : '';
+                    
+                    // Check if there's an existing detail record for this student & presensi
+                    const existingDetailId = attendanceRecords.find(record => 
+                        record.presensi_id === presensiId && 
+                        record.siswa_id === studentId
+                    )?.id;
+                    
+                    try {
+                        let response;
+                        const detailData = {
+                            presensi_id: presensiId,
+                            siswa_id: studentId,
+                            status: status,
+                            keterangan: keterangan
+                        };
+                        
+                        if (existingDetailId) {
+                            // Update existing record
+                            detailData.id = existingDetailId;
+                            
+                            console.log('Updating detail record:', detailData);
+                            
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'updateDetailPresensi');
+                            
+                            for (const key in detailData) {
+                                formData.append(key, detailData[key]);
+                            }
+                            
+                            response = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        } else {
+                            // Create new record
+                            console.log('Creating detail record:', detailData);
+                            console.log('API_URL:', API_URL);
+                            
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'createDetailPresensi');
+                            
+                            for (const key in detailData) {
+                                formData.append(key, detailData[key]);
+                            }
+                            
+                            console.log('Request data:', Object.fromEntries(formData));
+                            
+                            response = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                            
+                            console.log('Response:', response);
+                        }
+                        
+                        if (response && response.success) {
+                            savedCount++;
+                            
+                            const detailId = existingDetailId || (response.data ? response.data.id : null);
+                            
+                            // Save the complete record for UI updating
+                            savedRecords.push({
+                                id: detailId,
+                                presensi_id: presensiId,
+                                siswa_id: studentId,
+                                tanggal: attendanceDate,
+                                kelas_id: kelasId,
+                                status: status,
+                                keterangan: keterangan
+                            });
+                        } else {
+                            errorCount++;
+                            console.error('Failed to save detail record:', response);
+                        }
+                    } catch (error) {
+                        errorCount++;
+                        console.error('Error saving detail record:', error);
+                    }
+                }
+                
+                // Add saved records to the attendanceRecords array
+                if (savedRecords.length > 0) {
+                    console.log('Adding saved records to attendanceRecords:', savedRecords);
+                    
+                    // Remove existing records for these students if they exist for this presensi
+                    attendanceRecords = attendanceRecords.filter(record => 
+                        record.presensi_id !== presensiId || 
+                        !savedRecords.some(sr => sr.siswa_id === record.siswa_id)
+                    );
+                    
+                    // Add new records
+                    attendanceRecords = [...attendanceRecords, ...savedRecords];
+                }
+                
+                hideModal();
+                
+                if (errorCount > 0) {
+                    showToast('error', `Presensi tersimpan untuk ${savedCount} siswa. Terdapat ${errorCount} siswa yang gagal disimpan.`);
+                } else {
+                    showToast('success', `Presensi berhasil disimpan untuk ${savedCount} siswa.`);
+                }
+                
+                console.log('Current attendanceRecords after save:', attendanceRecords);
+                
+                // Ensure filters are set to show today's data
+                document.getElementById('filter-date').valueAsDate = today;
+                
+                // Apply filters to show the newly saved data
+                applyFilters();
+                
+                // Optionally reload data from server
+                await loadData();
+            } catch (error) {
+                console.error('Error saving attendance:', error);
+                showToast('error', 'Terjadi kesalahan saat menyimpan presensi: ' + error.message);
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+        
+        // Handle edit form submission
+        async function handleEditSubmit(e) {
+            e.preventDefault();
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(submitButton, true);
+            
+            const detailId = document.getElementById('edit-attendance-id').value;
+            const siswaId = document.getElementById('edit-student-id').value;
+            const status = document.getElementById('edit-status').value;
+            const keterangan = document.getElementById('edit-keterangan').value;
+            
+            // Find existing record
+            const record = attendanceRecords.find(r => r.id === detailId && r.siswa_id === siswaId);
+            
+            if (!record) {
+                showToast('error', 'Catatan presensi tidak ditemukan. Silakan coba lagi.');
+                setButtonLoading(submitButton, false);
+                return;
+            }
+            
+            try {
+                const updateData = {
+                    id: detailId,
+                    presensi_id: record.presensi_id,
+                    siswa_id: siswaId,
+                    status: status,
+                    keterangan: keterangan
+                };
+                
+                console.log('Updating detail record:', updateData);
+                
+                const formData = new URLSearchParams();
+                formData.append('action', 'updateDetailPresensi');
+                
+                for (const key in updateData) {
+                    formData.append(key, updateData[key]);
+                }
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json());
+                
+                if (response && response.success) {
+                    // Update local data
+                    const index = attendanceRecords.findIndex(r => r.id === detailId);
+                    if (index !== -1) {
+                        attendanceRecords[index] = {
+                            ...attendanceRecords[index],
+                            status: status,
+                            keterangan: keterangan,
+                            updated_at: new Date().toISOString()
+                        };
+                    }
+                    
+                    hideEditModal();
+                    renderAttendanceTable(attendanceRecords);
+                    updateStatistics();
+                    
+                    showToast('success', 'Presensi berhasil diperbarui.');
+                } else {
+                    showToast('error', 'Gagal memperbarui presensi: ' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating attendance:', error);
+                showToast('error', 'Terjadi kesalahan saat memperbarui presensi: ' + error.message);
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+        
+        // Delete attendance record
+        async function deleteAttendance() {
+            const confirmButton = document.getElementById('confirm-delete-btn');
+            setButtonLoading(confirmButton, true);
+            
+            const id = window.deleteAttendanceId;
+            if (!id) {
+                showToast('error', 'ID presensi tidak valid.');
+                setButtonLoading(confirmButton, false);
+                return;
+            }
+            
+            try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'deleteDetailPresensi');
+                formData.append('id', id);
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json());
+                
+                if (response && response.success) {
+                    // Remove record from local array
+                    attendanceRecords = attendanceRecords.filter(record => record.id !== id);
+                    
+                    hideDeleteModal();
+                    window.deleteAttendanceId = null;
+                    
+                    renderAttendanceTable(attendanceRecords);
+                    updateStatistics();
+                    
+                    showToast('success', 'Presensi berhasil dihapus.');
+                } else {
+                    showToast('error', 'Gagal menghapus presensi: ' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting attendance:', error);
+                showToast('error', 'Terjadi kesalahan saat menghapus presensi: ' + error.message);
+            } finally {
+                setButtonLoading(confirmButton, false);
+            }
+        }
+        
+        // Show print report modal
+        function showPrintReportModal() {
+            // Copy current filters to print modal
+            const currentClassFilter = document.getElementById('filter-class').value;
+            const currentDateFilter = document.getElementById('filter-date').value;
+            
+            // Set values in print modal
+            if (currentClassFilter) {
+                document.getElementById('print-class').value = currentClassFilter;
+            }
+            
+            if (currentDateFilter) {
+                document.getElementById('print-date').value = currentDateFilter;
+                
+                // Also set as start date for range
+                document.getElementById('print-start-date').value = currentDateFilter;
+                document.getElementById('print-end-date').value = currentDateFilter;
+            }
+            
+            document.getElementById('print-report-modal').classList.remove('hidden');
+        }
+        
+        // Hide print report modal
+        function hidePrintReportModal() {
+            document.getElementById('print-report-modal').classList.add('hidden');
+        }
+        
+        // Print attendance report
+        function generatePrintReport() {
+            const classFilter = document.getElementById('print-class').value;
+            
+            // Must have at least class filter
+            if (!classFilter) {
+                showToast('error', 'Silakan pilih kelas terlebih dahulu untuk mencetak laporan.');
+                return;
+            }
+            
+            // Determine if using single date or date range
+            const useDateRange = document.getElementById('print-date-range').checked;
+            
+            let filteredData = [];
+            let reportDateTitle = '';
+            
+            if (useDateRange) {
+                const startDate = document.getElementById('print-start-date').value;
+                const endDate = document.getElementById('print-end-date').value;
+                
+                if (!startDate || !endDate) {
+                    showToast('error', 'Pilih tanggal mulai dan tanggal selesai untuk rentang waktu.');
+                    return;
+                }
+                
+                // Validate date range
+                if (new Date(startDate) > new Date(endDate)) {
+                    showToast('error', 'Tanggal mulai tidak boleh lebih besar dari tanggal selesai.');
+                    return;
+                }
+                
+                // Filter data by date range
+                filteredData = attendanceRecords.filter(record => {
+                    // First filter by class
+                    const recordKelasId = record.kelas_id || '';
+                    if (classFilter !== '' && recordKelasId !== classFilter) {
+                        return false;
+                    }
+                    
+                    // Then filter by date range
+                    const recordDate = new Date(record.tanggal);
+                    const startDateObj = new Date(startDate);
+                    const endDateObj = new Date(endDate);
+                    
+                    // Set time to start/end of day for proper comparison
+                    startDateObj.setHours(0, 0, 0, 0);
+                    endDateObj.setHours(23, 59, 59, 999);
+                    
+                    return recordDate >= startDateObj && recordDate <= endDateObj;
+                });
+                
+                reportDateTitle = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+            } else {
+                const singleDate = document.getElementById('print-date').value;
+                
+                if (!singleDate) {
+                    showToast('error', 'Pilih tanggal untuk mencetak laporan.');
+                    return;
+                }
+                
+                // Filter data by single date
+                filteredData = attendanceRecords.filter(record => {
+                    // First filter by class
+                    const recordKelasId = record.kelas_id || '';
+                    if (classFilter !== '' && recordKelasId !== classFilter) {
+                        return false;
+                    }
+                    
+                    // Then filter by date
+                    const recordDate = new Date(record.tanggal).toISOString().split('T')[0];
+                    return recordDate === singleDate;
+                });
+                
+                reportDateTitle = formatDate(singleDate);
+            }
+            
+            // Get class name
+            const kelasObj = classes.find(k => (k.id === classFilter || k.kelas_id === classFilter));
+            const kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '-') : '-';
+            
+            // Calculate statistics for the filtered data
+            const totalStudents = students.filter(s => s.kelas_id === classFilter || s.kelas === classFilter).length;
+            const presentCount = filteredData.filter(r => r.status === 'Hadir').length;
+            const excusedCount = filteredData.filter(r => r.status === 'Izin' || r.status === 'Sakit').length;
+            const absentCount = filteredData.filter(r => r.status === 'Alfa').length;
+            
+            // Create print window
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Laporan Presensi - ${kelasNama}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h2, h3 { text-align: center; }
+                        .date { text-align: center; margin-bottom: 20px; font-style: italic; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .present { color: green; }
+                        .excused { color: orange; }
+                        .absent { color: red; }
+                        .stats { margin: 20px 0; display: flex; justify-content: space-between; }
+                        .stat-box { border: 1px solid #ddd; padding: 10px; width: 23%; text-align: center; }
+                        .stat-value { font-size: 24px; font-weight: bold; }
+                        @media print {
+                            button { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>Laporan Presensi Siswa</h2>
+                    <h3>${kelasNama}</h3>
+                    <div class="date">${reportDateTitle}</div>
+                    
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div>Total Siswa</div>
+                            <div class="stat-value">${totalStudents}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>Hadir</div>
+                            <div class="stat-value present">${presentCount}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>Izin/Sakit</div>
+                            <div class="stat-value excused">${excusedCount}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div>Alfa</div>
+                            <div class="stat-value absent">${absentCount}</div>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Siswa</th>
+                                <th>Tanggal</th>
+                                <th>Status</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `);
+            
+            if (filteredData.length === 0) {
+                printWindow.document.write(`
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Tidak ada data presensi</td>
+                    </tr>
+                `);
+            } else {
+                filteredData.forEach((record, index) => {
+                    const siswaId = record.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+                    
+                    const status = record.status || 'Hadir';
+                    const statusClass = status === 'Hadir' ? 'present' : 
+                                        (status === 'Alfa' ? 'absent' : 'excused');
+                    
+                    printWindow.document.write(`
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${namaSiswa}</td>
+                            <td>${formatDate(record.tanggal)}</td>
+                            <td class="${statusClass}">${status}</td>
+                            <td>${record.keterangan || '-'}</td>
+                        </tr>
+                    `);
+                });
+            }
+            
+            printWindow.document.write(`
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 30px; text-align: right;">
+                        <div>........................, ........................ 2023</div>
+                        <div style="margin-top: 70px;">(.............................................)</div>
+                        <div>Wali Kelas</div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button onclick="window.print()" style="padding: 10px 20px;">Cetak Laporan</button>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            // Hide modal after generating report
+            hidePrintReportModal();
+        }
+        
+        // Print attendance report (old function - keeping for backwards compatibility)
+        function printReport() {
+            showPrintReportModal();
+        }
+        
+        // Add a method to clear cache if needed
+        function clearDataCache() {
+            localStorage.removeItem('admin_classes');
+            localStorage.setItem('admin_classes_timestamp', 0);
+            console.log('Data cache cleared');
+        }
+
+        // Add this debug function to the end of the script section
+        function debugAttendanceData() {
+            console.log('=== DEBUG DATA ===');
+            console.log('Classes:', classes);
+            console.log('Students:', students);
+            console.log('Attendance Records:', attendanceRecords);
+            console.log('Filter Class:', document.getElementById('filter-class').value);
+            console.log('Filter Date:', document.getElementById('filter-date').value);
+            console.log('Filter Status:', document.getElementById('filter-status').value);
+            
+            // Test applying filters manually
+            const filteredData = applyFiltersToData([...attendanceRecords]);
+            console.log('Filtered Data:', filteredData);
+        }
+
+        // Add debug button to the UI
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugSection = document.createElement('div');
+            debugSection.innerHTML = `
+                <div class="mt-6 text-right">
+                    <button id="debug-btn" type="button" class="text-xs text-gray-500 hover:text-gray-700">Debug Data</button>
+                </div>
+            `;
+            
+            document.querySelector('.flex-1.overflow-auto.p-4').appendChild(debugSection);
+            
+            document.getElementById('debug-btn').addEventListener('click', debugAttendanceData);
+        });
+    </script>
+</body>
+</html> 

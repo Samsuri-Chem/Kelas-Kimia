@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nilai - Teacher Administration Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load SheetJS library for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Nilai Siswa</h2>
+                    <div class="flex space-x-2">
+                        <button id="export-excel-btn" class="shadcn-btn shadcn-btn-outline flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export Excel
+                        </button>
+                        <button id="print-report-btn" class="shadcn-btn shadcn-btn-outline flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                            </svg>
+                            Cetak Laporan
+                        </button>
+                        <button id="add-grade-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Tambah Nilai
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="search-input">
+                                    Cari Siswa
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="search-input" class="shadcn-input pl-10" placeholder="Cari berdasarkan nama siswa...">
+                                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-class">
+                                    Filter Kelas
+                                </label>
+                                <select id="filter-class" class="shadcn-select">
+                                    <option value="">Semua Kelas</option>
+                                    <!-- Will be populated from classes data -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-assignment">
+                                    Filter Tugas
+                                </label>
+                                <select id="filter-assignment" class="shadcn-select">
+                                    <option value="">Semua Tugas</option>
+                                    <!-- Will be populated from assignments data -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Jumlah Nilai</h3>
+                        <p class="text-2xl font-bold" id="total-grades">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Rata-rata Nilai</h3>
+                        <p class="text-2xl font-bold" id="average-grade">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Nilai Tertinggi</h3>
+                        <p class="text-2xl font-bold" id="highest-grade">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-sm font-medium text-gray-500 mb-1">Nilai Terendah</h3>
+                        <p class="text-2xl font-bold" id="lowest-grade">0</p>
+                    </div>
+                </div>
+                
+                <!-- Grades table -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div id="grades-container" class="w-full overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Siswa</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tugas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="grades-table-body">
+                                <tr>
+                                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                        Memuat data nilai...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Grade Modal -->
+    <div id="grade-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Tambah Nilai</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="grade-form">
+                <input type="hidden" id="grade-id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="siswa">
+                        Siswa
+                    </label>
+                    <select id="siswa" class="shadcn-select" required>
+                        <option value="">Pilih Siswa</option>
+                        <!-- Will be populated from students data -->
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="tugas">
+                        Tugas
+                    </label>
+                    <select id="tugas" class="shadcn-select" required>
+                        <option value="">Pilih Tugas</option>
+                        <!-- Will be populated from assignments data -->
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="nilai">
+                        Nilai
+                    </label>
+                    <input id="nilai" type="number" min="0" max="100" class="shadcn-input" placeholder="0-100" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="keterangan">
+                        Keterangan
+                    </label>
+                    <textarea id="keterangan" class="shadcn-input" placeholder="Keterangan nilai" rows="3"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="status">
+                        Status
+                    </label>
+                    <select id="status" class="shadcn-select" required>
+                        <option value="Dikoreksi">Dikoreksi</option>
+                        <option value="Belum Dikoreksi">Belum Dikoreksi</option>
+                        <option value="Dikumpulkan Terlambat">Dikumpulkan Terlambat</option>
+                        <option value="Tidak Mengumpulkan">Tidak Mengumpulkan</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus nilai untuk "<span id="delete-grade-name" class="font-semibold"></span>"?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize layout
+            initLayout();
+            updatePageTitle('Nilai Siswa');
+            
+            // Load data
+            loadData();
+            
+            // Event listeners
+            document.getElementById('add-grade-btn').addEventListener('click', showAddModal);
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+            document.getElementById('grade-form').addEventListener('submit', handleSubmit);
+            
+            // Delete modal event listeners
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', deleteGrade);
+            
+            // Search and filter functionality
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+            document.getElementById('filter-class').addEventListener('change', applyFilters);
+            document.getElementById('filter-assignment').addEventListener('change', applyFilters);
+            
+            // Export and print functionality
+            document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
+            document.getElementById('print-report-btn').addEventListener('click', printReport);
+        });
+        
+        // Global variables
+        let grades = [];
+        let students = [];
+        let classes = [];
+        let assignments = [];
+        let deleteGradeId = null;
+        
+        // Load all necessary data
+        async function loadData() {
+            try {
+                showLoading('grades-table-body');
+                
+                // Check for cached data first
+                const cachedClasses = localStorage.getItem('admin_classes');
+                const classesCache = cachedClasses ? JSON.parse(cachedClasses) : null;
+                const cacheTimestamp = localStorage.getItem('admin_classes_timestamp');
+                const cacheAge = cacheTimestamp ? (Date.now() - parseInt(cacheTimestamp)) : Infinity;
+                const cacheValid = cacheAge < 3600000; // 1 hour cache validity
+                
+                // Parallel data loading with Promise.all
+                // Load classes, assignments, and students in parallel
+                const [classesResult, assignmentsResult, studentsResult] = await Promise.all([
+                    // Classes data - use cache if valid, otherwise fetch
+                    (async () => {
+                        if (classesCache && cacheValid) {
+                            console.log('Using cached classes data');
+                            return { success: true, data: classesCache };
+                        }
+                        
+                        try {
+                            const response = await getKelas();
+                            if (response && response.success) {
+                                // Cache valid response
+                                localStorage.setItem('admin_classes', JSON.stringify(response.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                                return response;
+                            }
+                            throw new Error('Failed to load classes');
+                        } catch (error) {
+                            console.warn('Error in getKelas, trying fallback:', error);
+                            // Fallback
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getKelas');
+                            
+                            const fallbackResponse = await fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                            
+                            if (fallbackResponse && fallbackResponse.success) {
+                                localStorage.setItem('admin_classes', JSON.stringify(fallbackResponse.data));
+                                localStorage.setItem('admin_classes_timestamp', Date.now().toString());
+                            }
+                            return fallbackResponse;
+                        }
+                    })(),
+                    
+                    // Assignments data
+                    (async () => {
+                        try {
+                            const response = await getTugas();
+                            if (response && response.success) return response;
+                            throw new Error('Failed to load assignments');
+                        } catch (error) {
+                            console.warn('Error in getTugas, trying fallback:', error);
+                            // Fallback
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getTugas');
+                            
+                            return fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        }
+                    })(),
+                    
+                    // Students data
+                    (async () => {
+                        try {
+                            const response = await getSiswa();
+                            if (response && response.success) return response;
+                            throw new Error('Failed to load students');
+                        } catch (error) {
+                            console.warn('Error in getSiswa, trying fallback:', error);
+                            // Fallback
+                            const formData = new URLSearchParams();
+                            formData.append('action', 'getSiswa');
+                            
+                            return fetch(API_URL, {
+                                method: 'POST',
+                                body: formData
+                            }).then(res => res.json());
+                        }
+                    })()
+                ]);
+                
+                // Process results in parallel
+                if (classesResult && classesResult.success) {
+                    classes = classesResult.data || [];
+                }
+                
+                if (assignmentsResult && assignmentsResult.success) {
+                    assignments = assignmentsResult.data || [];
+                    // Normalize IDs
+                    assignments = assignments.map(assignment => {
+                        const id = assignment.id || assignment.tugas_id || '';
+                        const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                        return {
+                            ...assignment,
+                            id: String(safeId),
+                            tugas_id: String(safeId)
+                        };
+                    });
+                }
+                
+                if (studentsResult && studentsResult.success) {
+                    students = studentsResult.data || [];
+                    // Normalize IDs
+                    students = students.map(student => {
+                        const id = student.id || student.siswa_id || '';
+                        const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                        return {
+                            ...student,
+                            id: String(safeId),
+                            siswa_id: String(safeId)
+                        };
+                    });
+                }
+                
+                // Populate dropdowns in parallel to not block UI
+                Promise.all([
+                    populateClassDropdown(),
+                    populateAssignmentDropdown(),
+                    populateStudentDropdown()
+                ]);
+                
+                // Now load grades data
+                try {
+                    const gradesResponse = await getNilai();
+                    if (gradesResponse && gradesResponse.success) {
+                        grades = gradesResponse.data || [];
+                        // Normalize IDs
+                        grades = grades.map(grade => {
+                            const id = grade.id || grade.nilai_id || '';
+                            const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                            return {
+                                ...grade,
+                                id: String(safeId),
+                                nilai_id: String(safeId)
+                            };
+                        });
+                        renderGradesTable(grades);
+                        updateStatistics(grades);
+                    } else {
+                        throw new Error('Failed to load grades');
+                    }
+                } catch (gradesError) {
+                    console.error('Error loading grades:', gradesError);
+                    
+                    // Fallback direct API call
+                    try {
+                        const formData = new URLSearchParams();
+                        formData.append('action', 'getNilai');
+                        
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            body: formData
+                        }).then(res => res.json());
+                        
+                        if (response && response.success) {
+                            grades = response.data || [];
+                            // Normalize IDs
+                            grades = grades.map(grade => {
+                                const id = grade.id || grade.nilai_id || '';
+                                const safeId = id || ('generated-' + Math.random().toString(36).substring(2, 9));
+                                return {
+                                    ...grade,
+                                    id: String(safeId),
+                                    nilai_id: String(safeId)
+                                };
+                            });
+                            renderGradesTable(grades);
+                            updateStatistics(grades);
+                        } else {
+                            showError('grades-table-body', 'Gagal memuat data nilai dengan semua metode. Silakan refresh halaman.');
+                        }
+                    } catch (fallbackError) {
+                        console.error('Fallback grades load error:', fallbackError);
+                        showError('grades-table-body', 'Terjadi kesalahan saat memuat data nilai. Periksa konsol untuk detail.');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('grades-table-body', 'Terjadi kesalahan saat memuat data. Periksa konsol untuk detail.');
+            }
+        }
+        
+        // Populate dropdowns
+        function populateClassDropdown() {
+            if (!classes || !Array.isArray(classes) || classes.length === 0) {
+                console.warn('No classes available for dropdown');
+                return;
+            }
+            
+            // Sort classes by name
+            classes.sort((a, b) => {
+                const nameA = a.nama || a.nama_kelas || '';
+                const nameB = b.nama || b.nama_kelas || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Filter dropdown
+            const filterSelect = document.getElementById('filter-class');
+            if (filterSelect) {
+                filterSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                
+                classes.forEach(kelas => {
+                    const id = kelas.id || kelas.kelas_id;
+                    const nama = kelas.nama || kelas.nama_kelas || 'Kelas Tanpa Nama';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = nama;
+                        filterSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+        
+        function populateAssignmentDropdown() {
+            if (!assignments || !Array.isArray(assignments) || assignments.length === 0) {
+                console.warn('No assignments available for dropdown');
+                return;
+            }
+            
+            // Sort assignments by title
+            assignments.sort((a, b) => {
+                const titleA = a.judul || '';
+                const titleB = b.judul || '';
+                return titleA.localeCompare(titleB);
+            });
+            
+            // Filter dropdown
+            const filterSelect = document.getElementById('filter-assignment');
+            if (filterSelect) {
+                filterSelect.innerHTML = '<option value="">Semua Tugas</option>';
+                
+                assignments.forEach(tugas => {
+                    const id = tugas.id || tugas.tugas_id;
+                    const judul = tugas.judul || 'Tugas Tanpa Judul';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = judul;
+                        filterSelect.appendChild(option);
+                    }
+                });
+            }
+            
+            // Form dropdown
+            const formSelect = document.getElementById('tugas');
+            if (formSelect) {
+                formSelect.innerHTML = '<option value="">Pilih Tugas</option>';
+                
+                assignments.forEach(tugas => {
+                    const id = tugas.id || tugas.tugas_id;
+                    const judul = tugas.judul || 'Tugas Tanpa Judul';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = judul;
+                        formSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+        
+        function populateStudentDropdown() {
+            if (!students || !Array.isArray(students) || students.length === 0) {
+                console.warn('No students available for dropdown');
+                return;
+            }
+            
+            // Sort students by name
+            students.sort((a, b) => {
+                const nameA = a.nama || '';
+                const nameB = b.nama || '';
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Form dropdown
+            const formSelect = document.getElementById('siswa');
+            if (formSelect) {
+                formSelect.innerHTML = '<option value="">Pilih Siswa</option>';
+                
+                students.forEach(siswa => {
+                    const id = siswa.id || siswa.siswa_id;
+                    const nama = siswa.nama || 'Siswa Tanpa Nama';
+                    const kelas_id = siswa.kelas_id || '';
+                    
+                    // Get class name if available
+                    let kelasInfo = '';
+                    if (kelas_id) {
+                        const kelasObj = classes.find(k => (k.id === kelas_id || k.kelas_id === kelas_id));
+                        if (kelasObj) {
+                            kelasInfo = ` (${kelasObj.nama || kelasObj.nama_kelas || 'Kelas'})`;
+                        }
+                    }
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = nama + kelasInfo;
+                        formSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+        
+        // Render grades table
+        function renderGradesTable(data) {
+            const tableBody = document.getElementById('grades-table-body');
+            
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        Belum ada data nilai
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+            
+            console.log('Rendering grades:', data);
+            
+            let html = '';
+            data.forEach(nilai => {
+                // Handle different property naming conventions
+                const id = nilai.id || nilai.nilai_id;
+                const siswaId = nilai.siswa_id || '';
+                const tugasId = nilai.tugas_id || '';
+                const nilaiAngka = nilai.nilai || 0;
+                const keterangan = nilai.keterangan || '';
+                const status = nilai.status || 'Belum Dikoreksi';
+                const tanggal = nilai.tanggal || nilai.created_at || new Date().toISOString();
+                
+                // Find student and assignment information
+                const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                const tugas = assignments.find(t => (t.id === tugasId || t.tugas_id === tugasId));
+                
+                const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+                const judulTugas = tugas ? tugas.judul || 'Unknown' : 'Unknown';
+                
+                // Find class info
+                let kelasNama = '-';
+                if (siswa) {
+                    const kelasId = siswa.kelas_id || '';
+                    const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                    kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '-') : '-';
+                }
+                
+                // Generate a status badge with appropriate color
+                let statusBadge = '';
+                if (status === 'Dikoreksi') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Dikoreksi</span>';
+                } else if (status === 'Belum Dikoreksi') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Belum Dikoreksi</span>';
+                } else if (status === 'Dikumpulkan Terlambat') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Terlambat</span>';
+                } else if (status === 'Tidak Mengumpulkan') {
+                    statusBadge = '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Tidak Mengumpulkan</span>';
+                } else {
+                    statusBadge = `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${status}</span>`;
+                }
+                
+                // Ensure ID is not undefined or empty
+                const safeId = id ? id : 'no-id-' + Math.random().toString(36).substring(2, 9);
+                
+                html += `
+                <tr data-grade-id="${safeId}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${namaSiswa}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${judulTugas}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${kelasNama}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-lg font-semibold ${nilaiAngka >= 70 ? 'text-green-600' : nilaiAngka >= 60 ? 'text-yellow-600' : 'text-red-600'}">${nilaiAngka}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${formatDate(tanggal)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="showEditModal('${safeId}')">
+                            Edit
+                        </button>
+                        <button class="text-red-600 hover:text-red-900" onclick="showDeleteModal('${safeId}')">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+        }
+        
+        // Update statistics cards
+        function updateStatistics(data) {
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                document.getElementById('total-grades').textContent = '0';
+                document.getElementById('average-grade').textContent = '0';
+                document.getElementById('highest-grade').textContent = '0';
+                document.getElementById('lowest-grade').textContent = '0';
+                return;
+            }
+            
+            // Total grades
+            document.getElementById('total-grades').textContent = data.length;
+            
+            // Calculate average, highest, and lowest grades
+            let sum = 0;
+            let highest = 0;
+            let lowest = 100;
+            
+            // Only include numeric grades (skip non-submissions, etc.)
+            const validGrades = data.filter(g => {
+                const nilai = parseFloat(g.nilai || 0);
+                return !isNaN(nilai) && (g.status !== 'Tidak Mengumpulkan');
+            });
+            
+            if (validGrades.length > 0) {
+                validGrades.forEach(grade => {
+                    const nilai = parseFloat(grade.nilai || 0);
+                    sum += nilai;
+                    
+                    if (nilai > highest) highest = nilai;
+                    if (nilai < lowest) lowest = nilai;
+                });
+                
+                const average = sum / validGrades.length;
+                
+                document.getElementById('average-grade').textContent = average.toFixed(1);
+                document.getElementById('highest-grade').textContent = highest;
+                document.getElementById('lowest-grade').textContent = lowest;
+            } else {
+                document.getElementById('average-grade').textContent = '0';
+                document.getElementById('highest-grade').textContent = '0';
+                document.getElementById('lowest-grade').textContent = '0';
+            }
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date)) return dateString;
+                
+                return date.toLocaleDateString();
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString;
+            }
+        }
+        
+        // Apply search and filter
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const classFilter = document.getElementById('filter-class').value;
+            const assignmentFilter = document.getElementById('filter-assignment').value;
+            
+            let filteredGrades = grades;
+            
+            // Apply class filter
+            if (classFilter) {
+                filteredGrades = filteredGrades.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const siswaKelasId = siswa.kelas_id || '';
+                    return siswaKelasId === classFilter;
+                });
+            }
+            
+            // Apply assignment filter
+            if (assignmentFilter) {
+                filteredGrades = filteredGrades.filter(nilai => {
+                    const tugasId = nilai.tugas_id || '';
+                    return tugasId === assignmentFilter;
+                });
+            }
+            
+            // Apply search term (search by student name)
+            if (searchTerm) {
+                filteredGrades = filteredGrades.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const namaSiswa = (siswa.nama || '').toLowerCase();
+                    return namaSiswa.includes(searchTerm);
+                });
+            }
+            
+            renderGradesTable(filteredGrades);
+            updateStatistics(filteredGrades);
+        }
+        
+        // Show modal for adding a new grade
+        function showAddModal() {
+            document.getElementById('modal-title').textContent = 'Tambah Nilai';
+            document.getElementById('grade-id').value = '';
+            document.getElementById('grade-form').reset();
+            document.getElementById('grade-modal').classList.remove('hidden');
+        }
+        
+        // Show modal for editing a grade
+        function showEditModal(id) {
+            console.log("showEditModal called with ID:", id);
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const nilai = grades.find(n => String(n.id) === idStr || String(n.nilai_id) === idStr);
+            console.log("Found grade object:", nilai);
+            
+            if (!nilai) {
+                console.error("Grade not found with ID:", id);
+                alert("Error: Grade not found with ID: " + id);
+                return;
+            }
+            
+            // Handle different property naming conventions
+            const siswaId = nilai.siswa_id || '';
+            const tugasId = nilai.tugas_id || '';
+            const nilaiAngka = nilai.nilai || 0;
+            const keterangan = nilai.keterangan || '';
+            const status = nilai.status || 'Belum Dikoreksi';
+            
+            document.getElementById('modal-title').textContent = 'Edit Nilai';
+            document.getElementById('grade-id').value = id;
+            document.getElementById('siswa').value = siswaId;
+            document.getElementById('tugas').value = tugasId;
+            document.getElementById('nilai').value = nilaiAngka;
+            document.getElementById('keterangan').value = keterangan;
+            document.getElementById('status').value = status;
+            
+            document.getElementById('grade-modal').classList.remove('hidden');
+        }
+        
+        // Hide the modal
+        function hideModal() {
+            document.getElementById('grade-modal').classList.add('hidden');
+        }
+        
+        // Show delete confirmation modal
+        function showDeleteModal(id) {
+            console.log("showDeleteModal called with ID:", id);
+            // Normalize id to string for comparison
+            const idStr = String(id);
+            const nilai = grades.find(n => String(n.id) === idStr || String(n.nilai_id) === idStr);
+            console.log("Found grade object:", nilai);
+            
+            if (!nilai) {
+                console.error("Grade not found with ID:", id);
+                alert("Error: Grade not found with ID: " + id);
+                return;
+            }
+            
+            const siswaId = nilai.siswa_id || '';
+            const tugasId = nilai.tugas_id || '';
+            
+            // Find student and assignment names
+            const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+            const tugas = assignments.find(t => (t.id === tugasId || t.tugas_id === tugasId));
+            
+            const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+            const judulTugas = tugas ? tugas.judul || 'Unknown' : 'Unknown';
+            
+            // Set global deleteGradeId
+            window.deleteGradeId = id;
+            document.getElementById('delete-grade-name').textContent = `${namaSiswa} - ${judulTugas}`;
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete confirmation modal
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+        
+        // Helper function to set loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+        
+        // Handle form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(submitButton, true);
+            
+            const id = document.getElementById('grade-id').value;
+            const isEdit = !!id;
+            
+            console.log('Form submission - isEdit:', isEdit, 'ID:', id);
+            
+            // Standardize property names to match what the backend expects
+            const nilaiData = {
+                siswa_id: document.getElementById('siswa').value,
+                tugas_id: document.getElementById('tugas').value,
+                nilai: document.getElementById('nilai').value,
+                keterangan: document.getElementById('keterangan').value,
+                status: document.getElementById('status').value,
+                tanggal: new Date().toISOString()
+            };
+            
+            // For edit operations, include ID field
+            if (isEdit) {
+                nilaiData.id = id;
+                nilaiData.nilai_id = id;
+            }
+            
+            try {
+                // First try standard API functions
+                let response;
+                try {
+                    if (isEdit) {
+                        // Update existing grade
+                        console.log('Updating grade with ID:', id);
+                        response = await updateNilai(id, nilaiData);
+                    } else {
+                        // Add new grade
+                        response = await createNilai(nilaiData);
+                    }
+                    console.log('API response:', response);
+                } catch (functionError) {
+                    console.warn('API function error:', functionError);
+                    
+                    // Fall back to direct API call with POST
+                    console.log('Trying direct API call for saving grade...');
+                    const formData = new URLSearchParams();
+                    formData.append('action', isEdit ? 'updateNilai' : 'createNilai');
+                    if (isEdit) {
+                        formData.append('id', String(id));
+                        formData.append('nilai_id', String(id));
+                    }
+                    
+                    // Add all data properties
+                    for (const key in nilaiData) {
+                        formData.append(key, nilaiData[key]);
+                    }
+                    
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).catch(err => {
+                        console.error('API Error:', err);
+                        return { success: false, error: err.message };
+                    });
+                    console.log('Direct API response:', response);
+                }
+                
+                if (response && response.success) {
+                    hideModal();
+                    await loadData();
+                    applyFilters(); // Re-apply any active filters
+                } else {
+                    const errorMsg = response && response.error ? response.error : 'Unknown error occurred';
+                    alert(`Gagal ${isEdit ? 'memperbarui' : 'menambahkan'} nilai: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Error saving grade:', error);
+                alert(`Terjadi kesalahan saat ${isEdit ? 'memperbarui' : 'menambahkan'} nilai. Periksa konsol untuk detail.`);
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+        
+        // Delete grade
+        async function deleteGrade() {
+            const confirmButton = document.getElementById('confirm-delete-btn');
+            setButtonLoading(confirmButton, true);
+            
+            try {
+                // Use the global variable
+                const gradeIdToDelete = window.deleteGradeId;
+                console.log('Deleting grade with ID (from global var):', gradeIdToDelete);
+                
+                if (!gradeIdToDelete || gradeIdToDelete === 'undefined') {
+                    console.error('Invalid grade ID to delete:', gradeIdToDelete);
+                    alert('Error: Invalid grade ID to delete');
+                    return;
+                }
+                
+                // First try standard API function
+                let response;
+                try {
+                    response = await deleteNilai(gradeIdToDelete);
+                    console.log('deleteNilai API response:', response);
+                } catch (functionError) {
+                    console.warn('API function error:', functionError);
+                    
+                    // Fall back to direct API call
+                    console.log('Trying direct API call for deleting grade...');
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'deleteNilai');
+                    formData.append('id', String(gradeIdToDelete));
+                    formData.append('nilai_id', String(gradeIdToDelete));
+                    
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).catch(err => {
+                        console.error('API Error:', err);
+                        return { success: false, error: err.message };
+                    });
+                    console.log('Direct API response:', response);
+                }
+                
+                if (response && response.success) {
+                    hideDeleteModal();
+                    // Clear the ID after successful deletion
+                    window.deleteGradeId = null;
+                    await loadData();
+                    applyFilters(); // Re-apply any active filters
+                } else {
+                    const errorMsg = response && response.error ? response.error : 'Unknown error occurred';
+                    alert(`Gagal menghapus nilai: ${errorMsg}`);
+                }
+            } catch (error) {
+                console.error('Error deleting grade:', error);
+                alert('Terjadi kesalahan saat menghapus nilai. Periksa konsol untuk detail.');
+            } finally {
+                setButtonLoading(confirmButton, false);
+            }
+        }
+        
+        // Helper functions for showing loading/error states
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Memuat data nilai...
+                    </td>
+                </tr>
+                `;
+            }
+        }
+        
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-red-500">
+                        <svg class="h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        ${message}
+                    </td>
+                </tr>
+                `;
+            }
+        }
+        
+        // Add a method to clear cache if needed
+        function clearDataCache() {
+            localStorage.removeItem('admin_classes');
+            localStorage.removeItem('admin_classes_timestamp');
+            console.log('Data cache cleared');
+        }
+        
+        // Export to Excel function
+        function exportToExcel() {
+            // Get filtered grades to export
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const classFilter = document.getElementById('filter-class').value;
+            const assignmentFilter = document.getElementById('filter-assignment').value;
+            
+            // Apply filters to get the data to export
+            let dataToExport = [...grades];
+            
+            // Apply class filter
+            if (classFilter) {
+                dataToExport = dataToExport.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const siswaKelasId = siswa.kelas_id || '';
+                    return siswaKelasId === classFilter;
+                });
+            }
+            
+            // Apply assignment filter
+            if (assignmentFilter) {
+                dataToExport = dataToExport.filter(nilai => {
+                    const tugasId = nilai.tugas_id || '';
+                    return tugasId === assignmentFilter;
+                });
+            }
+            
+            // Apply search term (search by student name)
+            if (searchTerm) {
+                dataToExport = dataToExport.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const namaSiswa = (siswa.nama || '').toLowerCase();
+                    return namaSiswa.includes(searchTerm);
+                });
+            }
+            
+            // Sort data by student name
+            dataToExport.sort((a, b) => {
+                const siswaA = students.find(s => (s.id === a.siswa_id || s.siswa_id === a.siswa_id));
+                const siswaB = students.find(s => (s.id === b.siswa_id || s.siswa_id === b.siswa_id));
+                
+                const nameA = siswaA ? (siswaA.nama || '') : '';
+                const nameB = siswaB ? (siswaB.nama || '') : '';
+                
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Prepare data for Excel export (array of objects)
+            const excelData = dataToExport.map(nilai => {
+                const siswaId = nilai.siswa_id || '';
+                const tugasId = nilai.tugas_id || '';
+                const nilaiAngka = nilai.nilai || 0;
+                const keterangan = nilai.keterangan || '';
+                const status = nilai.status || 'Belum Dikoreksi';
+                const tanggal = nilai.tanggal || nilai.created_at || new Date().toISOString();
+                
+                // Find student and assignment information
+                const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                const tugas = assignments.find(t => (t.id === tugasId || t.tugas_id === tugasId));
+                
+                const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+                const judulTugas = tugas ? tugas.judul || 'Unknown' : 'Unknown';
+                
+                // Find class info
+                let kelasNama = '-';
+                if (siswa) {
+                    const kelasId = siswa.kelas_id || '';
+                    const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                    kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '-') : '-';
+                }
+                
+                // Format date
+                const formattedDate = formatDate(tanggal);
+                
+                // Return a row for Excel
+                return {
+                    'Nama Siswa': namaSiswa,
+                    'Kelas': kelasNama,
+                    'Tugas': judulTugas,
+                    'Nilai': nilaiAngka,
+                    'Status': status,
+                    'Tanggal': formattedDate,
+                    'Keterangan': keterangan
+                };
+            });
+            
+            // Create worksheet from data
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            // Add some styling (column widths)
+            const colWidths = [
+                { wch: 25 }, // Nama Siswa
+                { wch: 15 }, // Kelas
+                { wch: 25 }, // Tugas
+                { wch: 8 },  // Nilai
+                { wch: 18 }, // Status
+                { wch: 15 }, // Tanggal
+                { wch: 30 }, // Keterangan
+            ];
+            worksheet['!cols'] = colWidths;
+            
+            // Create workbook
+            const workbook = XLSX.utils.book_new();
+            
+            // Get report title based on filters
+            let sheetName = "Nilai Siswa";
+            if (classFilter) {
+                const kelasObj = classes.find(k => (k.id === classFilter || k.kelas_id === classFilter));
+                if (kelasObj) {
+                    sheetName = `Nilai ${kelasObj.nama || kelasObj.nama_kelas || 'Kelas'}`;
+                }
+            }
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            
+            // Generate Excel file
+            const now = new Date();
+            const filename = `nilai_siswa_${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.xlsx`;
+            
+            // Trigger download
+            XLSX.writeFile(workbook, filename);
+        }
+        
+        // Print report function
+        function printReport() {
+            // Get filtered grades to include in the report
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const classFilter = document.getElementById('filter-class').value;
+            const assignmentFilter = document.getElementById('filter-assignment').value;
+            
+            // Apply filters to get the data to print
+            let dataToPrint = [...grades];
+            
+            // Apply class filter
+            if (classFilter) {
+                dataToPrint = dataToPrint.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const siswaKelasId = siswa.kelas_id || '';
+                    return siswaKelasId === classFilter;
+                });
+            }
+            
+            // Apply assignment filter
+            if (assignmentFilter) {
+                dataToPrint = dataToPrint.filter(nilai => {
+                    const tugasId = nilai.tugas_id || '';
+                    return tugasId === assignmentFilter;
+                });
+            }
+            
+            // Apply search term (search by student name)
+            if (searchTerm) {
+                dataToPrint = dataToPrint.filter(nilai => {
+                    const siswaId = nilai.siswa_id || '';
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    
+                    if (!siswa) return false;
+                    
+                    const namaSiswa = (siswa.nama || '').toLowerCase();
+                    return namaSiswa.includes(searchTerm);
+                });
+            }
+            
+            // Get report title based on filters
+            let reportTitle = "Laporan Nilai Siswa";
+            let subTitle = "";
+            
+            if (classFilter) {
+                const kelasObj = classes.find(k => (k.id === classFilter || k.kelas_id === classFilter));
+                if (kelasObj) {
+                    subTitle += `Kelas: ${kelasObj.nama || kelasObj.nama_kelas || '-'}`;
+                }
+            }
+            
+            if (assignmentFilter) {
+                const tugasObj = assignments.find(t => (t.id === assignmentFilter || t.tugas_id === assignmentFilter));
+                if (tugasObj) {
+                    subTitle += subTitle ? ` - Tugas: ${tugasObj.judul || '-'}` : `Tugas: ${tugasObj.judul || '-'}`;
+                }
+            }
+            
+            // Calculate statistics
+            const totalGrades = dataToPrint.length;
+            let sum = 0;
+            let highest = 0;
+            let lowest = 100;
+            
+            // Only include numeric grades (skip non-submissions, etc.)
+            const validGrades = dataToPrint.filter(g => {
+                const nilai = parseFloat(g.nilai || 0);
+                return !isNaN(nilai) && (g.status !== 'Tidak Mengumpulkan');
+            });
+            
+            if (validGrades.length > 0) {
+                validGrades.forEach(grade => {
+                    const nilai = parseFloat(grade.nilai || 0);
+                    sum += nilai;
+                    
+                    if (nilai > highest) highest = nilai;
+                    if (nilai < lowest) lowest = nilai;
+                });
+                
+                const average = sum / validGrades.length;
+                
+                // Format statistics for the report
+                var averageGrade = average.toFixed(1);
+                var highestGrade = highest;
+                var lowestGrade = lowest;
+            } else {
+                var averageGrade = 0;
+                var highestGrade = 0;
+                var lowestGrade = 0;
+            }
+            
+            // Create a new window for the print report
+            const printWindow = window.open('', '', 'height=600,width=800');
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>${reportTitle}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            color: #333;
+                        }
+                        h1, h2 {
+                            text-align: center;
+                            margin-bottom: 5px;
+                        }
+                        .subtitle {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            font-style: italic;
+                            color: #666;
+                        }
+                        .date {
+                            text-align: right;
+                            margin-bottom: 20px;
+                        }
+                        .stats-container {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 20px;
+                        }
+                        .stat-box {
+                            border: 1px solid #ddd;
+                            padding: 10px;
+                            width: 23%;
+                            text-align: center;
+                        }
+                        .stat-label {
+                            font-size: 12px;
+                            color: #666;
+                            margin-bottom: 5px;
+                        }
+                        .stat-value {
+                            font-size: 20px;
+                            font-weight: bold;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 20px;
+                        }
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        tr:nth-child(even) {
+                            background-color: #f9f9f9;
+                        }
+                        .signature {
+                            margin-top: 50px;
+                            text-align: right;
+                        }
+                        .signature-line {
+                            margin-top: 70px;
+                            border-top: 1px solid #000;
+                            width: 200px;
+                            display: inline-block;
+                        }
+                        @media print {
+                            @page { 
+                                size: landscape;
+                                margin: 1cm;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>${reportTitle}</h1>
+                    ${subTitle ? `<div class="subtitle">${subTitle}</div>` : ''}
+                    <div class="date">Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    
+                    <div class="stats-container">
+                        <div class="stat-box">
+                            <div class="stat-label">Jumlah Nilai</div>
+                            <div class="stat-value">${totalGrades}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Rata-rata Nilai</div>
+                            <div class="stat-value">${averageGrade}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Nilai Tertinggi</div>
+                            <div class="stat-value">${highestGrade}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Nilai Terendah</div>
+                            <div class="stat-value">${lowestGrade}</div>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Siswa</th>
+                                <th>Kelas</th>
+                                <th>Tugas</th>
+                                <th>Nilai</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `);
+            
+            if (dataToPrint.length === 0) {
+                printWindow.document.write(`
+                    <tr>
+                        <td colspan="8" style="text-align: center;">Tidak ada data nilai</td>
+                    </tr>
+                `);
+            } else {
+                // Sort data by student name
+                dataToPrint.sort((a, b) => {
+                    const siswaA = students.find(s => (s.id === a.siswa_id || s.siswa_id === a.siswa_id));
+                    const siswaB = students.find(s => (s.id === b.siswa_id || s.siswa_id === b.siswa_id));
+                    
+                    const nameA = siswaA ? (siswaA.nama || '') : '';
+                    const nameB = siswaB ? (siswaB.nama || '') : '';
+                    
+                    return nameA.localeCompare(nameB);
+                });
+                
+                dataToPrint.forEach((nilai, index) => {
+                    const siswaId = nilai.siswa_id || '';
+                    const tugasId = nilai.tugas_id || '';
+                    const nilaiAngka = nilai.nilai || 0;
+                    const keterangan = nilai.keterangan || '';
+                    const status = nilai.status || 'Belum Dikoreksi';
+                    const tanggal = nilai.tanggal || nilai.created_at || new Date().toISOString();
+                    
+                    // Find student and assignment information
+                    const siswa = students.find(s => (s.id === siswaId || s.siswa_id === siswaId));
+                    const tugas = assignments.find(t => (t.id === tugasId || t.tugas_id === tugasId));
+                    
+                    const namaSiswa = siswa ? siswa.nama || 'Unknown' : 'Unknown';
+                    const judulTugas = tugas ? tugas.judul || 'Unknown' : 'Unknown';
+                    
+                    // Find class info
+                    let kelasNama = '-';
+                    if (siswa) {
+                        const kelasId = siswa.kelas_id || '';
+                        const kelasObj = classes.find(k => (k.id === kelasId || k.kelas_id === kelasId));
+                        kelasNama = kelasObj ? (kelasObj.nama || kelasObj.nama_kelas || '-') : '-';
+                    }
+                    
+                    // Format date
+                    const formattedDate = formatDate(tanggal);
+                    
+                    printWindow.document.write(`
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${namaSiswa}</td>
+                            <td>${kelasNama}</td>
+                            <td>${judulTugas}</td>
+                            <td style="text-align: center; font-weight: bold;">${nilaiAngka}</td>
+                            <td>${status}</td>
+                            <td>${formattedDate}</td>
+                            <td>${keterangan}</td>
+                        </tr>
+                    `);
+                });
+            }
+            
+            printWindow.document.write(`
+                        </tbody>
+                    </table>
+                    
+                    <div class="signature">
+                        <div>........................, ........................ ${new Date().getFullYear()}</div>
+                        <div class="signature-line"></div>
+                        <div>(.............................................)</div>
+                        <div>Guru Mata Pelajaran</div>
+                    </div>
+                    
+                    <div class="no-print" style="text-align: center; margin-top: 20px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Cetak Laporan
+                        </button>
+                        <button onclick="window.close()" style="padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                            Tutup
+                        </button>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Focus the print window
+            printWindow.focus();
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Soal - KelasGuru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        
+        /* Question bank specific styles */
+        .difficulty-basic {
+            background-color: #DCFCE7;
+            color: #166534;
+        }
+        
+        .difficulty-intermediate {
+            background-color: #FEF9C3;
+            color: #854D0E;
+        }
+        
+        .difficulty-advanced {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Bank Soal</h2>
+                    <div class="flex space-x-2">
+                        <button id="add-question-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Tambah Soal
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter container -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-kategori">
+                                    Kategori
+                                </label>
+                                <select id="filter-kategori" class="shadcn-select">
+                                    <option value="">Semua Kategori</option>
+                                    <option value="Pilihan Ganda">Pilihan Ganda</option>
+                                    <option value="Essay">Essay</option>
+                                    <option value="Isian Singkat">Isian Singkat</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-difficulty">
+                                    Tingkat Kesulitan
+                                </label>
+                                <select id="filter-difficulty" class="shadcn-select">
+                                    <option value="">Semua</option>
+                                    <option value="Dasar">Dasar</option>
+                                    <option value="Menengah">Menengah</option>
+                                    <option value="Lanjut">Lanjut</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-subject">
+                                    Mata Pelajaran
+                                </label>
+                                <select id="filter-subject" class="shadcn-select">
+                                    <option value="">Semua Mapel</option>
+                                    <option value="Matematika">Matematika</option>
+                                    <option value="IPA">IPA</option>
+                                    <option value="IPS">IPS</option>
+                                    <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                                    <option value="Bahasa Inggris">Bahasa Inggris</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button id="filter-btn" class="shadcn-btn shadcn-btn-primary w-full">
+                                    Terapkan Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Questions List -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div class="p-4 bg-primary text-primary-foreground">
+                        <h3 class="text-lg font-semibold">Daftar Soal</h3>
+                    </div>
+                    <div class="p-4">
+                        <div id="questions-loading" class="text-center py-4">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <p class="mt-2 text-gray-500">Memuat data soal...</p>
+                        </div>
+                        <div id="questions-list" class="hidden">
+                            <!-- Questions will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Question Modal -->
+    <div id="question-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Tambah Soal Baru</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="question-form">
+                <input type="hidden" id="question-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-kategori">
+                            Kategori <span class="text-red-500">*</span>
+                        </label>
+                        <select id="question-kategori" class="shadcn-select w-full" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="Pilihan Ganda">Pilihan Ganda</option>
+                            <option value="Essay">Essay</option>
+                            <option value="Isian Singkat">Isian Singkat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-tingkat-kesulitan">
+                            Tingkat Kesulitan <span class="text-red-500">*</span>
+                        </label>
+                        <select id="question-tingkat-kesulitan" class="shadcn-select w-full" required>
+                            <option value="">Pilih Tingkat Kesulitan</option>
+                            <option value="Dasar">Dasar</option>
+                            <option value="Menengah">Menengah</option>
+                            <option value="Lanjut">Lanjut</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-mata-pelajaran">
+                            Mata Pelajaran <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-mata-pelajaran" class="shadcn-input w-full" required placeholder="Masukkan mata pelajaran">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-bab">
+                            Bab/Materi <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-bab" class="shadcn-input w-full" required placeholder="Masukkan bab/materi">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pertanyaan">
+                        Pertanyaan <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="question-pertanyaan" class="shadcn-textarea w-full" rows="3" required placeholder="Masukkan pertanyaan"></textarea>
+                </div>
+                
+                <div id="multiple-choice-options" class="mb-4">
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pilihan-a">
+                            Pilihan A <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-pilihan-a" class="shadcn-input w-full" placeholder="Masukkan pilihan A">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pilihan-b">
+                            Pilihan B <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-pilihan-b" class="shadcn-input w-full" placeholder="Masukkan pilihan B">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pilihan-c">
+                            Pilihan C <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-pilihan-c" class="shadcn-input w-full" placeholder="Masukkan pilihan C">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pilihan-d">
+                            Pilihan D <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="question-pilihan-d" class="shadcn-input w-full" placeholder="Masukkan pilihan D">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-pilihan-e">
+                            Pilihan E <span class="text-gray-500 text-xs">(opsional)</span>
+                        </label>
+                        <input type="text" id="question-pilihan-e" class="shadcn-input w-full" placeholder="Masukkan pilihan E (opsional)">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="question-jawaban-benar">
+                            Jawaban Benar <span class="text-red-500">*</span>
+                        </label>
+                        <select id="question-jawaban-benar" class="shadcn-select w-full">
+                            <option value="">Pilih Jawaban Benar</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="question-penjelasan">
+                        Penjelasan
+                    </label>
+                    <textarea id="question-penjelasan" class="shadcn-textarea w-full" rows="3" placeholder="Masukkan penjelasan (opsional)"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-question-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- View Question Modal -->
+    <div id="view-question-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Detail Soal</h3>
+                <button id="close-view-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="text-sm text-gray-500">Kategori</div>
+                        <div id="view-kategori" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">Tingkat Kesulitan</div>
+                        <div id="view-tingkat-kesulitan" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="text-sm text-gray-500">Mata Pelajaran</div>
+                        <div id="view-mata-pelajaran" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">Bab/Materi</div>
+                        <div id="view-bab" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Pertanyaan</div>
+                    <div id="view-pertanyaan" class="bg-gray-50 p-3 rounded-md mt-1"></div>
+                </div>
+                
+                <div id="view-multiple-choice" class="mb-4">
+                    <div class="text-sm text-gray-500 mb-2">Pilihan Jawaban</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div class="bg-gray-50 p-2 rounded-md">
+                            <span class="font-medium">A:</span> <span id="view-pilihan-a"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-md">
+                            <span class="font-medium">B:</span> <span id="view-pilihan-b"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-md">
+                            <span class="font-medium">C:</span> <span id="view-pilihan-c"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-md">
+                            <span class="font-medium">D:</span> <span id="view-pilihan-d"></span>
+                        </div>
+                        <div id="option-e-container" class="bg-gray-50 p-2 rounded-md">
+                            <span class="font-medium">E:</span> <span id="view-pilihan-e"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Jawaban Benar</div>
+                    <div id="view-jawaban-benar" class="font-medium text-green-600"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Penjelasan</div>
+                    <div id="view-penjelasan" class="bg-gray-50 p-3 rounded-md mt-1"></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-view-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Tutup
+                </button>
+                <button type="button" id="edit-question-btn" class="shadcn-btn shadcn-btn-primary mr-2">
+                    Edit
+                </button>
+                <button type="button" id="delete-question-btn" class="shadcn-btn shadcn-btn-destructive">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus soal ini?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script>
+        // Global variables
+        let allQuestions = [];
+        let currentQuestionId = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize layout - this will set up the sidebar and header
+            initLayout();
+            updatePageTitle('Bank Soal');
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Load questions
+            loadQuestions();
+            
+            // Set up the category change event to show/hide multiple choice fields
+            document.getElementById('question-kategori').addEventListener('change', function() {
+                toggleMultipleChoiceFields(this.value === 'Pilihan Ganda');
+            });
+        });
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Add question button
+            document.getElementById('add-question-btn').addEventListener('click', showAddQuestionModal);
+            
+            // Modal buttons
+            document.getElementById('close-modal-btn').addEventListener('click', hideQuestionModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideQuestionModal);
+            
+            // Form submission
+            document.getElementById('question-form').addEventListener('submit', handleQuestionFormSubmit);
+            
+            // Filter button
+            document.getElementById('filter-btn').addEventListener('click', applyFilters);
+            
+            // View Question modal
+            document.getElementById('close-view-modal-btn').addEventListener('click', hideViewQuestionModal);
+            document.getElementById('close-view-btn').addEventListener('click', hideViewQuestionModal);
+            document.getElementById('edit-question-btn').addEventListener('click', () => {
+                console.log('Edit button clicked, currentQuestionId:', currentQuestionId);
+                editCurrentQuestion();
+            });
+            document.getElementById('delete-question-btn').addEventListener('click', () => {
+                console.log('Delete button clicked, currentQuestionId:', currentQuestionId);
+                confirmDeleteQuestion();
+            });
+            
+            // Delete modal
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteQuestion);
+        }
+        
+        // Toggle loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+        
+        // API call function following CORS rules
+        async function callApi(action, params = {}) {
+            try {
+                console.log(`Calling API: ${action} with params:`, params);
+                
+                // Create form data with URLSearchParams for proper encoding
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                
+                // Add other params, ensuring they are strings
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        const value = params[key];
+                        formData.append(key, String(value));
+                    }
+                }
+                
+                // Log the exact data being sent for debugging
+                console.log('Sending data:', formData.toString());
+                
+                // Make fetch request - no custom headers to avoid CORS issues
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                    // Important: No Content-Type header to avoid CORS preflight
+                });
+                
+                // Check for HTTP errors
+                if (!response.ok) {
+                    console.error(`HTTP error: ${response.status}`);
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                
+                // Parse response
+                const result = await response.json();
+                console.log('API Response for', action, ':', result);
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                return { 
+                    success: false, 
+                    error: error.message
+                };
+            }
+        }
+        
+        // Load questions from API
+        async function loadQuestions() {
+            try {
+                document.getElementById('questions-loading').classList.remove('hidden');
+                document.getElementById('questions-list').classList.add('hidden');
+                
+                // Call API to get questions
+                const result = await callApi('getBankSoal');
+                
+                if (result.success) {
+                    // Store questions data
+                    allQuestions = result.data || [];
+                    
+                    // Render questions list
+                    renderQuestionsList(allQuestions);
+                } else {
+                    showToast('error', 'Gagal memuat data soal: ' + (result.error || 'Kesalahan tidak diketahui'));
+                    renderQuestionsList([]);
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data soal: ' + error.message);
+                renderQuestionsList([]);
+            } finally {
+                document.getElementById('questions-loading').classList.add('hidden');
+                document.getElementById('questions-list').classList.remove('hidden');
+            }
+        }
+        
+        // Render questions list
+        function renderQuestionsList(questions) {
+            const questionsListContainer = document.getElementById('questions-list');
+            
+            if (!questions || questions.length === 0) {
+                questionsListContainer.innerHTML = `
+                    <div class="text-center py-6">
+                        <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="mt-3 text-gray-500">Belum ada soal. Tambahkan soal baru!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort questions by mata pelajaran and tingkat kesulitan
+            questions.sort((a, b) => {
+                if (a.mata_pelajaran === b.mata_pelajaran) {
+                    return a.tingkat_kesulitan.localeCompare(b.tingkat_kesulitan);
+                }
+                return a.mata_pelajaran.localeCompare(b.mata_pelajaran);
+            });
+            
+            // Group questions by mata pelajaran
+            const questionsBySubject = {};
+            
+            questions.forEach(question => {
+                const subject = question.mata_pelajaran || 'Lainnya';
+                
+                if (!questionsBySubject[subject]) {
+                    questionsBySubject[subject] = [];
+                }
+                
+                questionsBySubject[subject].push(question);
+            });
+            
+            // Build the HTML
+            let html = '';
+            
+            for (const subject in questionsBySubject) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-3">${subject}</h4>
+                        <div class="space-y-3">
+                `;
+                
+                questionsBySubject[subject].forEach(question => {
+                    // Determine difficulty class
+                    let difficultyClass = 'difficulty-basic';
+                    if (question.tingkat_kesulitan === 'Menengah') {
+                        difficultyClass = 'difficulty-intermediate';
+                    } else if (question.tingkat_kesulitan === 'Lanjut') {
+                        difficultyClass = 'difficulty-advanced';
+                    }
+                    
+                    html += `
+                        <div class="bg-white border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" data-question-id="${question.id}" onclick="viewQuestion('${question.id}')">
+                            <div class="flex justify-between">
+                                <div class="flex-1">
+                                    <p class="font-medium mb-1">${question.pertanyaan}</p>
+                                    <div class="text-sm text-gray-500 mb-2">
+                                        <span>Bab: ${question.bab}</span> • 
+                                        <span>Kategori: ${question.kategori}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 text-xs rounded-full ${difficultyClass}">${question.tingkat_kesulitan}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            questionsListContainer.innerHTML = html;
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            const kategori = document.getElementById('filter-kategori').value;
+            const difficulty = document.getElementById('filter-difficulty').value;
+            const subject = document.getElementById('filter-subject').value;
+            
+            const filteredQuestions = allQuestions.filter(question => {
+                if (kategori && question.kategori !== kategori) return false;
+                if (difficulty && question.tingkat_kesulitan !== difficulty) return false;
+                if (subject && question.mata_pelajaran !== subject) return false;
+                
+                return true;
+            });
+            
+            renderQuestionsList(filteredQuestions);
+        }
+        
+        // Toggle multiple choice fields visibility
+        function toggleMultipleChoiceFields(show) {
+            const multipleChoiceFields = document.getElementById('multiple-choice-options');
+            
+            if (show) {
+                multipleChoiceFields.classList.remove('hidden');
+                document.querySelectorAll('#multiple-choice-options input, #multiple-choice-options select').forEach(el => {
+                    el.required = true;
+                });
+            } else {
+                multipleChoiceFields.classList.add('hidden');
+                document.querySelectorAll('#multiple-choice-options input, #multiple-choice-options select').forEach(el => {
+                    el.required = false;
+                });
+            }
+        }
+        
+        // Show add question modal
+        function showAddQuestionModal() {
+            // Set default values
+            document.getElementById('modal-title').textContent = 'Tambah Soal Baru';
+            document.getElementById('question-id').value = '';
+            document.getElementById('question-kategori').value = '';
+            document.getElementById('question-tingkat-kesulitan').value = '';
+            document.getElementById('question-mata-pelajaran').value = '';
+            document.getElementById('question-bab').value = '';
+            document.getElementById('question-pertanyaan').value = '';
+            document.getElementById('question-pilihan-a').value = '';
+            document.getElementById('question-pilihan-b').value = '';
+            document.getElementById('question-pilihan-c').value = '';
+            document.getElementById('question-pilihan-d').value = '';
+            document.getElementById('question-pilihan-e').value = '';
+            document.getElementById('question-jawaban-benar').value = '';
+            document.getElementById('question-penjelasan').value = '';
+            
+            // Hide multiple choice fields by default
+            toggleMultipleChoiceFields(false);
+            
+            // Show modal
+            document.getElementById('question-modal').classList.remove('hidden');
+            
+            // Focus on kategori select
+            document.getElementById('question-kategori').focus();
+        }
+        
+        // Hide question modal
+        function hideQuestionModal() {
+            document.getElementById('question-modal').classList.add('hidden');
+        }
+        
+        // View question details
+        function viewQuestion(id) {
+            currentQuestionId = id;
+            
+            const question = allQuestions.find(q => q.id === id);
+            if (!question) {
+                showToast('error', 'Soal tidak ditemukan');
+                return;
+            }
+            
+            // Set question details in modal
+            document.getElementById('view-kategori').textContent = question.kategori || '-';
+            document.getElementById('view-tingkat-kesulitan').textContent = question.tingkat_kesulitan || '-';
+            document.getElementById('view-mata-pelajaran').textContent = question.mata_pelajaran || '-';
+            document.getElementById('view-bab').textContent = question.bab || '-';
+            document.getElementById('view-pertanyaan').textContent = question.pertanyaan || '-';
+            
+            // Multiple choice fields
+            const multipleChoiceContainer = document.getElementById('view-multiple-choice');
+            if (question.kategori === 'Pilihan Ganda') {
+                multipleChoiceContainer.classList.remove('hidden');
+                document.getElementById('view-pilihan-a').textContent = question.pilihan_a || '-';
+                document.getElementById('view-pilihan-b').textContent = question.pilihan_b || '-';
+                document.getElementById('view-pilihan-c').textContent = question.pilihan_c || '-';
+                document.getElementById('view-pilihan-d').textContent = question.pilihan_d || '-';
+                
+                // Handle option E
+                const optionEContainer = document.getElementById('option-e-container');
+                if (question.pilihan_e) {
+                    document.getElementById('view-pilihan-e').textContent = question.pilihan_e;
+                    optionEContainer.classList.remove('hidden');
+                } else {
+                    optionEContainer.classList.add('hidden');
+                }
+                
+                document.getElementById('view-jawaban-benar').textContent = question.jawaban_benar || '-';
+            } else {
+                multipleChoiceContainer.classList.add('hidden');
+                document.getElementById('view-jawaban-benar').textContent = '-';
+            }
+            
+            document.getElementById('view-penjelasan').textContent = question.penjelasan || 'Tidak ada penjelasan';
+            
+            // Show modal
+            document.getElementById('view-question-modal').classList.remove('hidden');
+        }
+        
+        // Hide view question modal
+        function hideViewQuestionModal(keepQuestionId = false) {
+            document.getElementById('view-question-modal').classList.add('hidden');
+            if (!keepQuestionId) {
+                currentQuestionId = null;
+            }
+        }
+        
+        // Edit current question
+        function editCurrentQuestion() {
+            if (!currentQuestionId) return;
+            
+            const question = allQuestions.find(q => q.id === currentQuestionId);
+            if (!question) {
+                showToast('error', 'Soal tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the question ID
+            hideViewQuestionModal(true);
+            
+            // Set question data in form
+            document.getElementById('modal-title').textContent = 'Edit Soal';
+            document.getElementById('question-id').value = question.id;
+            document.getElementById('question-kategori').value = question.kategori || '';
+            document.getElementById('question-tingkat-kesulitan').value = question.tingkat_kesulitan || '';
+            document.getElementById('question-mata-pelajaran').value = question.mata_pelajaran || '';
+            document.getElementById('question-bab').value = question.bab || '';
+            document.getElementById('question-pertanyaan').value = question.pertanyaan || '';
+            
+            // Toggle multiple choice fields based on question category
+            toggleMultipleChoiceFields(question.kategori === 'Pilihan Ganda');
+            
+            document.getElementById('question-pilihan-a').value = question.pilihan_a || '';
+            document.getElementById('question-pilihan-b').value = question.pilihan_b || '';
+            document.getElementById('question-pilihan-c').value = question.pilihan_c || '';
+            document.getElementById('question-pilihan-d').value = question.pilihan_d || '';
+            document.getElementById('question-pilihan-e').value = question.pilihan_e || '';
+            document.getElementById('question-jawaban-benar').value = question.jawaban_benar || '';
+            document.getElementById('question-penjelasan').value = question.penjelasan || '';
+            
+            // Show modal
+            document.getElementById('question-modal').classList.remove('hidden');
+        }
+        
+        // Show delete confirmation
+        function confirmDeleteQuestion() {
+            if (!currentQuestionId) return;
+            
+            const question = allQuestions.find(q => q.id === currentQuestionId);
+            if (!question) {
+                showToast('error', 'Soal tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the question ID
+            hideViewQuestionModal(true);
+            
+            // Store the question ID in the delete modal's data attribute as backup
+            document.getElementById('delete-modal').dataset.questionId = currentQuestionId;
+            
+            // Show delete modal
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete modal
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+        
+        // Handle question form submission
+        async function handleQuestionFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const id = document.getElementById('question-id').value;
+            const kategori = document.getElementById('question-kategori').value;
+            const tingkat_kesulitan = document.getElementById('question-tingkat-kesulitan').value;
+            const mata_pelajaran = document.getElementById('question-mata-pelajaran').value;
+            const bab = document.getElementById('question-bab').value;
+            const pertanyaan = document.getElementById('question-pertanyaan').value;
+            
+            // Simple validation
+            if (!kategori || !tingkat_kesulitan || !mata_pelajaran || !bab || !pertanyaan) {
+                showToast('error', 'Silakan lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            // Prepare question data
+            const questionData = {
+                kategori,
+                tingkat_kesulitan,
+                mata_pelajaran,
+                bab,
+                pertanyaan,
+                penjelasan: document.getElementById('question-penjelasan').value
+            };
+            
+            // If multiple choice, add those fields
+            if (kategori === 'Pilihan Ganda') {
+                const pilihan_a = document.getElementById('question-pilihan-a').value;
+                const pilihan_b = document.getElementById('question-pilihan-b').value;
+                const pilihan_c = document.getElementById('question-pilihan-c').value;
+                const pilihan_d = document.getElementById('question-pilihan-d').value;
+                const pilihan_e = document.getElementById('question-pilihan-e').value;
+                const jawaban_benar = document.getElementById('question-jawaban-benar').value;
+                
+                if (!pilihan_a || !pilihan_b || !pilihan_c || !pilihan_d || !jawaban_benar) {
+                    showToast('error', 'Silakan lengkapi semua pilihan jawaban dan jawaban benar');
+                    return;
+                }
+                
+                // Validate if E is selected as answer but no value provided
+                if (jawaban_benar === 'E' && !pilihan_e) {
+                    showToast('error', 'Pilihan E dipilih sebagai jawaban tetapi tidak diisi');
+                    return;
+                }
+                
+                questionData.pilihan_a = pilihan_a;
+                questionData.pilihan_b = pilihan_b;
+                questionData.pilihan_c = pilihan_c;
+                questionData.pilihan_d = pilihan_d;
+                questionData.pilihan_e = pilihan_e;
+                questionData.jawaban_benar = jawaban_benar;
+            }
+            
+            const saveButton = document.getElementById('save-question-btn');
+            
+            try {
+                // Disable save button and show loading state
+                setButtonLoading(saveButton, true);
+                
+                // Determine if this is an update or a new question
+                const action = id ? 'updateBankSoal' : 'createBankSoal';
+                
+                // Add ID if updating
+                if (id) {
+                    questionData.id = id;
+                }
+                
+                // Call API
+                const result = await callApi(action, questionData);
+                
+                if (result.success) {
+                    // Hide modal
+                    hideQuestionModal();
+                    
+                    // Update local data and refresh list
+                    await loadQuestions();
+                    
+                    // Show success message
+                    showToast('success', id ? 'Soal berhasil diperbarui' : 'Soal baru berhasil ditambahkan');
+                } else {
+                    showToast('error', `Gagal ${id ? 'memperbarui' : 'menambahkan'} soal: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving question:', error);
+                showToast('error', `Terjadi kesalahan saat ${id ? 'memperbarui' : 'menambahkan'} soal: ${error.message}`);
+            } finally {
+                // Re-enable save button and hide loading state
+                setButtonLoading(saveButton, false);
+            }
+        }
+        
+        // Delete question
+        async function handleDeleteQuestion() {
+            console.log('handleDeleteQuestion called with currentQuestionId:', currentQuestionId);
+            
+            // Try to get the question ID from currentQuestionId or from the modal's data attribute
+            let questionId = currentQuestionId;
+            
+            // If currentQuestionId is null, try to get it from the modal's data attribute
+            if (!questionId) {
+                questionId = document.getElementById('delete-modal').dataset.questionId;
+                console.log('Retrieved questionId from modal data attribute:', questionId);
+            }
+            
+            if (!questionId) {
+                console.error('No question ID found');
+                hideDeleteModal();
+                showToast('error', 'ID soal tidak ditemukan');
+                return;
+            }
+            
+            const deleteButton = document.getElementById('confirm-delete-btn');
+            
+            try {
+                // Disable delete button and show loading state
+                setButtonLoading(deleteButton, true);
+                
+                console.log('Calling deleteBankSoal API with ID:', questionId);
+                
+                // Call API to delete question using callApi directly
+                const result = await callApi('deleteBankSoal', { id: questionId });
+                
+                console.log('Delete API response:', result);
+                
+                if (result.success) {
+                    // Hide delete modal
+                    hideDeleteModal();
+                    
+                    // Remove question from local data
+                    allQuestions = allQuestions.filter(q => q.id !== questionId);
+                    
+                    // Refresh questions list
+                    renderQuestionsList(allQuestions);
+                    
+                    // Show success message
+                    showToast('success', 'Soal berhasil dihapus');
+                    
+                    // Reset current question ID
+                    currentQuestionId = null;
+                } else {
+                    showToast('error', `Gagal menghapus soal: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting question:', error);
+                showToast('error', `Terjadi kesalahan saat menghapus soal: ${error.message}`);
+            } finally {
+                // Re-enable delete button and hide loading state
+                setButtonLoading(deleteButton, false);
+            }
+        }
+    </script>
+</body>
+</html> 

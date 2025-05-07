@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelas - Teacher Administration Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        
+        /* Button animations */
+        .shadcn-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .shadcn-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .shadcn-btn:active {
+            transform: translateY(0);
+        }
+        
+        .shadcn-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%, -50%);
+            transform-origin: 50% 50%;
+        }
+        
+        .shadcn-btn:focus::after {
+            animation: ripple 1s ease-out;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0) translate(-50%, -50%);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(20, 20) translate(-50%, -50%);
+                opacity: 0;
+            }
+        }
+        
+        /* Edit and Delete button animations */
+        .edit-btn, .delete-btn {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .edit-btn:hover, .delete-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .edit-btn:active, .delete-btn:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold">Kelas</h2>
+                    <button id="add-class-btn" class="shadcn-btn shadcn-btn-primary flex items-center">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Tambah Kelas
+                    </button>
+                </div>
+                
+                <!-- Classes table -->
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <div class="p-4 border-b">
+                        <div class="relative">
+                            <input type="text" id="search-input" class="shadcn-input pl-10" placeholder="Cari kelas...">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div id="classes-container" class="w-full overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Kelas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun Ajaran</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wali Kelas</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Siswa</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="classes-table-body">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                        Memuat data kelas...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination container -->
+                    <div id="pagination-container" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Class Modal -->
+    <div id="class-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="modal-title">Tambah Kelas</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="class-form">
+                <input type="hidden" id="class-id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="nama">
+                        Nama Kelas
+                    </label>
+                    <input id="nama" type="text" class="shadcn-input" placeholder="Contoh: X IPA 1" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="tahun-ajaran">
+                        Tahun Ajaran
+                    </label>
+                    <input id="tahun-ajaran" type="text" class="shadcn-input" placeholder="Contoh: 2023/2024" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="wali-kelas">
+                        Wali Kelas
+                    </label>
+                    <input id="wali-kelas" type="text" class="shadcn-input" placeholder="Nama wali kelas" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="deskripsi">
+                        Deskripsi
+                    </label>
+                    <textarea id="deskripsi" class="shadcn-input" placeholder="Deskripsi kelas (opsional)" rows="3"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus kelas <span id="delete-class-name" class="font-semibold"></span>?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/pagination.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize layout
+            initLayout();
+            updatePageTitle('Kelas');
+            
+            // Initialize pagination
+            const pagination = new Pagination({
+                containerId: 'pagination-container',
+                initialPage: 1,
+                pageSize: 10,
+                onPageChange: (page) => {
+                    loadClasses(page);
+                }
+            });
+            
+            // Load classes data
+            loadClasses();
+            
+            // Event listeners
+            document.getElementById('add-class-btn').addEventListener('click', showAddModal);
+            document.getElementById('close-modal-btn').addEventListener('click', hideModal);
+            document.getElementById('cancel-btn').addEventListener('click', hideModal);
+            document.getElementById('class-form').addEventListener('submit', handleSubmit);
+            
+            // Delete modal event listeners
+            document.getElementById('close-delete-modal-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirm-delete-btn').addEventListener('click', deleteClass);
+            
+            // Search functionality with debounce
+            const searchInput = document.getElementById('search-input');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadClasses(1, this.value);
+                }, 300); // Wait 300ms after user stops typing
+            });
+            
+            // Lazy load functions
+            async function loadClasses(page = 1, searchTerm = '') {
+                const classesTableBody = document.getElementById('classes-table-body');
+                classesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                            <p class="mt-2 text-gray-500">Memuat data kelas...</p>
+                        </td>
+                    </tr>
+                `;
+                
+                try {
+                    pagination.setLoading(true);
+                    
+                    // Get classes with pagination
+                    const filters = {};
+                    if (searchTerm) {
+                        filters.search = searchTerm;
+                    }
+                    
+                    const response = await getPaginatedKelas(page, pagination.pageSize, filters);
+                    
+                    if (response.success) {
+                        classes = response.data;
+                        
+                        // Update pagination - safely check if pagination data exists
+                        if (response.pagination && response.pagination.totalItems !== undefined) {
+                            pagination.setTotalItems(response.pagination.totalItems);
+                        } else {
+                            // Fallback - set total items to the length of the current data
+                            pagination.setTotalItems(classes.length);
+                            console.warn('Pagination data not provided by API, using fallback counting method');
+                        }
+                        
+                        // Get student counts for each class
+                        const studentCountPromises = classes.map(kelas => getSiswa(null, kelas.id));
+                        const studentCountResponses = await Promise.all(studentCountPromises);
+                        
+                        // Create a map of class ID -> student count
+                        studentCounts = {};
+                        studentCountResponses.forEach((response, index) => {
+                            if (response.success) {
+                                const classId = classes[index].id;
+                                studentCounts[classId] = response.data ? response.data.length : 0;
+                            }
+                        });
+                        
+                        // Render classes table
+                        renderClassesTable();
+                    } else {
+                        showToast('error', 'Gagal memuat data: ' + response.error);
+                        classesTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-red-500">
+                                    Error: ${response.error}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading classes:', error);
+                    showToast('error', 'Gagal memuat data: ' + error.message);
+                    classesTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-red-500">
+                                Error: ${error.message}
+                            </td>
+                        </tr>
+                    `;
+                } finally {
+                    pagination.setLoading(false);
+                }
+            }
+            
+            function renderClassesTable() {
+                const classesTableBody = document.getElementById('classes-table-body');
+                
+                if (classes.length === 0) {
+                    classesTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                Tidak ada data kelas.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                
+                classes.forEach(kelas => {
+                    html += `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-medium text-gray-900">${kelas.nama_kelas || kelas.nama || '-'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                ${kelas.tahun_ajaran || '-'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                ${kelas.wali_kelas || '-'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                ${studentCounts[kelas.id] || 0} siswa
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="edit-btn text-blue-600 hover:text-blue-900 mr-3" data-id="${kelas.id}">
+                                    Edit
+                                </button>
+                                <button class="delete-btn text-red-600 hover:text-red-900" data-id="${kelas.id}" data-name="${kelas.nama_kelas || kelas.nama || 'Kelas'}">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                classesTableBody.innerHTML = html;
+                
+                // Attach event listeners to edit and delete buttons
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = this.getAttribute('data-id');
+                        showEditModal(id);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = this.getAttribute('data-id');
+                        const name = this.getAttribute('data-name');
+                        showDeleteModal(id, name);
+                    });
+                });
+            }
+            
+            // Rest of the existing functions
+            function showAddModal() {
+                document.getElementById('modal-title').textContent = 'Tambah Kelas';
+                document.getElementById('class-id').value = '';
+                document.getElementById('nama').value = '';
+                document.getElementById('tahun-ajaran').value = '';
+                document.getElementById('wali-kelas').value = '';
+                document.getElementById('deskripsi').value = '';
+                
+                document.getElementById('class-modal').classList.remove('hidden');
+            }
+            
+            function showEditModal(id) {
+                const kelas = classes.find(k => k.id === id);
+                if (!kelas) return;
+                
+                document.getElementById('modal-title').textContent = 'Edit Kelas';
+                document.getElementById('class-id').value = kelas.id;
+                document.getElementById('nama').value = kelas.nama_kelas || kelas.nama || '';
+                document.getElementById('tahun-ajaran').value = kelas.tahun_ajaran || '';
+                document.getElementById('wali-kelas').value = kelas.wali_kelas || '';
+                document.getElementById('deskripsi').value = kelas.deskripsi || '';
+                
+                document.getElementById('class-modal').classList.remove('hidden');
+            }
+            
+            function hideModal() {
+                document.getElementById('class-modal').classList.add('hidden');
+            }
+            
+            function showDeleteModal(id, name) {
+                deleteClassId = id;
+                document.getElementById('delete-class-name').textContent = name;
+                document.getElementById('delete-modal').classList.remove('hidden');
+            }
+            
+            function hideDeleteModal() {
+                document.getElementById('delete-modal').classList.add('hidden');
+                deleteClassId = null;
+            }
+            
+            async function handleSubmit(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('class-id').value;
+                const isEdit = !!id;
+                
+                // Show loading state
+                const saveBtn = document.getElementById('save-btn');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⭮</span> Menyimpan...';
+                
+                const classData = {
+                    nama_kelas: document.getElementById('nama').value,
+                    tahun_ajaran: document.getElementById('tahun-ajaran').value,
+                    wali_kelas: document.getElementById('wali-kelas').value,
+                    deskripsi: document.getElementById('deskripsi').value
+                };
+                
+                try {
+                    let response;
+                    
+                    if (isEdit) {
+                        response = await updateKelas(id, classData);
+                    } else {
+                        response = await createKelas(classData);
+                    }
+                    
+                    if (response.success) {
+                        showToast('success', isEdit ? 'Kelas berhasil diperbarui' : 'Kelas berhasil ditambahkan');
+                        hideModal();
+                        
+                        // Reload classes with current state
+                        const currentPage = pagination.currentPage;
+                        const searchTerm = document.getElementById('search-input').value;
+                        loadClasses(currentPage, searchTerm);
+                    } else {
+                        showToast('error', 'Gagal: ' + response.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('error', 'Terjadi kesalahan: ' + error.message);
+                } finally {
+                    // Reset button state
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = 'Simpan';
+                }
+            }
+            
+            async function deleteClass() {
+                if (!deleteClassId) {
+                    hideDeleteModal();
+                    return;
+                }
+                
+                // Show loading state
+                const deleteBtn = document.getElementById('confirm-delete-btn');
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⭮</span> Menghapus...';
+                
+                try {
+                    const response = await deleteKelas(deleteClassId);
+                    
+                    if (response.success) {
+                        showToast('success', 'Kelas berhasil dihapus');
+                        
+                        // Reload classes with current state
+                        const currentPage = pagination.currentPage;
+                        // If we're deleting the last item on the page, go to previous page
+                        const newPage = (classes.length === 1 && currentPage > 1) ? currentPage - 1 : currentPage;
+                        const searchTerm = document.getElementById('search-input').value;
+                        
+                        hideDeleteModal();
+                        loadClasses(newPage, searchTerm);
+                    } else {
+                        showToast('error', 'Gagal menghapus kelas: ' + response.error);
+                        hideDeleteModal();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('error', 'Terjadi kesalahan: ' + error.message);
+                    hideDeleteModal();
+                } finally {
+                    // Reset button state (even though modal is hidden)
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = 'Hapus';
+                }
+            }
+        });
+        
+        // Global variables
+        let classes = [];
+        let studentCounts = {};
+        let deleteClassId = null;
+    </script>
+</body>
+</html> 

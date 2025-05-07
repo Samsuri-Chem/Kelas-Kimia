@@ -1,0 +1,151 @@
+/* Toast notification styles - Shadcn UI */
+.toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 200;
+    max-width: 380px;
+    width: 100%;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: toast-enter 0.2s ease-out;
+    overflow: hidden;
+    transform-origin: bottom;
+    position: relative;
+}
+
+.toast-success {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-left: 3px solid hsl(var(--success));
+    color: hsl(var(--foreground));
+}
+
+.toast-error {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-left: 3px solid hsl(var(--destructive));
+    color: hsl(var(--foreground));
+}
+
+.toast-info {
+    background-color: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    border-left: 3px solid hsl(var(--primary));
+    color: hsl(var(--foreground));
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+    width: 18px;
+    height: 18px;
+}
+
+.toast-success .toast-icon {
+    color: hsl(var(--success));
+}
+
+.toast-error .toast-icon {
+    color: hsl(var(--destructive));
+}
+
+.toast-info .toast-icon {
+    color: hsl(var(--primary));
+}
+
+.toast-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.toast-message {
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+    line-height: 1.4;
+}
+
+.toast-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.toast-close {
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+    width: 16px;
+    height: 16px;
+    opacity: 0.5;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: hsl(var(--muted-foreground));
+    transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+.toast-progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    opacity: 0.5;
+}
+
+.toast-success .toast-progress {
+    background-color: hsl(var(--success));
+}
+
+.toast-error .toast-progress {
+    background-color: hsl(var(--destructive));
+}
+
+.toast-info .toast-progress {
+    background-color: hsl(var(--primary));
+}
+
+@keyframes toast-enter {
+    0% {
+        transform: translateY(16px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toast-leave {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes toast-progress {
+    0% {
+        width: 100%;
+    }
+    100% {
+        width: 0%;
+    }
+} 

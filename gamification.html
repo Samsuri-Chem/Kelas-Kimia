@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamifikasi - KelasGuru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="shadcn-styles.css">
+    <link rel="stylesheet" href="toast.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load required API and layout scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar-fix.js"></script>
+    <script src="toast.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Loading animation styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        
+        /* Gamification specific styles */
+        .badge-icon {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+        }
+        
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            width: 28px;
+            height: 28px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .level-badge-1 {
+            background-color: hsl(var(--muted) / 0.7);
+            color: hsl(var(--muted-foreground));
+        }
+        
+        .level-badge-2 {
+            background-color: hsl(var(--primary) / 0.2);
+            color: hsl(var(--primary));
+        }
+        
+        .level-badge-3 {
+            background-color: hsl(var(--success) / 0.2);
+            color: hsl(var(--success));
+        }
+        
+        .level-badge-4 {
+            background-color: hsl(var(--warning) / 0.2);
+            color: hsl(var(--warning));
+        }
+        
+        .level-badge-5 {
+            background-color: hsl(var(--destructive) / 0.2);
+            color: hsl(var(--destructive));
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid hsl(var(--border));
+            margin-bottom: 1rem;
+        }
+        
+        .tab {
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            color: hsl(var(--muted-foreground));
+            transition: color 0.2s, border-color 0.2s;
+        }
+        
+        .tab.active {
+            border-bottom-color: hsl(var(--primary));
+            color: hsl(var(--primary));
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Shadcn UI Table styles */
+        .shadcn-table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 0.5rem;
+            border: 1px solid hsl(var(--border));
+            background-color: hsl(var(--background));
+        }
+
+        .shadcn-table {
+            width: 100%;
+            caption-side: bottom;
+            border-collapse: collapse;
+        }
+
+        .shadcn-table th {
+            height: 48px;
+            padding: 0 1rem;
+            text-align: left;
+            vertical-align: middle;
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: hsl(var(--muted-foreground));
+            background-color: hsl(var(--muted) / 0.1);
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .shadcn-table tr {
+            border-bottom: 1px solid hsl(var(--border));
+            transition: background-color 0.2s;
+        }
+
+        .shadcn-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .shadcn-table tr:hover {
+            background-color: hsl(var(--muted) / 0.1);
+        }
+
+        .shadcn-table td {
+            padding: 1rem;
+            vertical-align: middle;
+            font-size: 0.875rem;
+        }
+
+        .shadcn-table-header {
+            position: sticky;
+            top: 0;
+            background-color: hsl(var(--background));
+            z-index: 1;
+        }
+
+        .shadcn-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        .shadcn-empty-icon {
+            height: 3rem;
+            width: 3rem;
+            color: hsl(var(--muted-foreground) / 0.5);
+            margin-bottom: 1rem;
+        }
+
+        .shadcn-empty-text {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen bg-gray-50 overflow-hidden">
+        <!-- Sidebar container - hidden on mobile, visible on medium screens and up -->
+        <div id="sidebar-container" class="w-64 bg-white shadow-md hidden md:block"></div>
+        
+        <!-- Main container -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header container -->
+            <div id="header-container"></div>
+            
+            <!-- Content container -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-semibold">Gamifikasi Pembelajaran</h2>
+                    <p class="text-gray-600">Kelola poin XP, badge, dan pencapaian siswa</p>
+                </div>
+                
+                <!-- Tabs navigation -->
+                <div class="tabs">
+                    <div class="tab active" data-tab="xp-tab">Poin XP</div>
+                    <div class="tab" data-tab="badges-tab">Badge</div>
+                    <div class="tab" data-tab="student-badges-tab">Badge Siswa</div>
+                </div>
+                
+                <!-- XP Tab Content -->
+                <div id="xp-tab" class="tab-content active">
+                    <!-- XP Management Section -->
+                    <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+                        <div class="p-4 bg-primary text-primary-foreground flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Manajemen Poin XP</h3>
+                            <button id="add-xp-btn" class="px-3 py-1 bg-background text-primary rounded-md hover:bg-muted/80">
+                                Tambah XP
+                            </button>
+                        </div>
+                        
+                        <!-- Filter Container -->
+                        <div class="p-4 border-b">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-siswa">
+                                        Siswa
+                                    </label>
+                                    <select id="filter-siswa" class="shadcn-select w-full">
+                                        <option value="">Semua Siswa</option>
+                                        <!-- Options will be populated from API -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-aktivitas">
+                                        Aktivitas
+                                    </label>
+                                    <select id="filter-aktivitas" class="shadcn-select w-full">
+                                        <option value="">Semua Aktivitas</option>
+                                        <option value="Tugas">Tugas</option>
+                                        <option value="Kuis">Kuis</option>
+                                        <option value="Kehadiran">Kehadiran</option>
+                                        <option value="Partisipasi">Partisipasi</option>
+                                        <option value="Badge">Badge</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="filter-xp-btn" class="shadcn-btn shadcn-btn-primary w-full">
+                                        Terapkan Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- XP List -->
+                        <div class="p-4">
+                            <div id="xp-loading" class="text-center py-4">
+                                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <p class="mt-2 text-gray-500">Memuat data XP...</p>
+                            </div>
+                            <div id="xp-list" class="hidden">
+                                <!-- XP entries will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- XP Summary Section -->
+                    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                        <div class="p-4 bg-success text-success-foreground">
+                            <h3 class="text-lg font-semibold">Ringkasan XP dan Level</h3>
+                        </div>
+                        <div class="p-4">
+                            <div id="xp-summary-loading" class="text-center py-4">
+                                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                                <p class="mt-2 text-gray-500">Memuat ringkasan XP...</p>
+                            </div>
+                            <div id="xp-summary" class="hidden">
+                                <!-- XP summary will be shown here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Badges Tab Content -->
+                <div id="badges-tab" class="tab-content">
+                    <!-- Badges Management Section -->
+                    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                        <div class="p-4 bg-secondary text-secondary-foreground flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Manajemen Badge</h3>
+                            <button id="add-badge-btn" class="px-3 py-1 bg-background text-secondary rounded-md hover:bg-muted/80">
+                                Tambah Badge
+                            </button>
+                        </div>
+                        
+                        <!-- Badges List -->
+                        <div class="p-4">
+                            <div id="badges-loading" class="text-center py-4">
+                                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
+                                <p class="mt-2 text-gray-500">Memuat data badge...</p>
+                            </div>
+                            <div id="badges-list" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <!-- Badges will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Student Badges Tab Content -->
+                <div id="student-badges-tab" class="tab-content">
+                    <!-- Student Badges Management Section -->
+                    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                        <div class="p-4 bg-warning text-warning-foreground flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Manajemen Badge Siswa</h3>
+                            <button id="add-student-badge-btn" class="px-3 py-1 bg-background text-warning rounded-md hover:bg-muted/80">
+                                Berikan Badge
+                            </button>
+                        </div>
+                        
+                        <!-- Filter Container -->
+                        <div class="p-4 border-b">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2" for="filter-siswa-badge">
+                                        Siswa
+                                    </label>
+                                    <select id="filter-siswa-badge" class="shadcn-select w-full">
+                                        <option value="">Semua Siswa</option>
+                                        <!-- Options will be populated from API -->
+                                    </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="filter-student-badge-btn" class="shadcn-btn shadcn-btn-primary w-full">
+                                        Terapkan Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Student Badges List -->
+                        <div class="p-4">
+                            <div id="student-badges-loading" class="text-center py-4">
+                                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                                <p class="mt-2 text-gray-500">Memuat data badge siswa...</p>
+                            </div>
+                            <div id="student-badges-list" class="hidden">
+                                <!-- Student badges will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Add XP Modal -->
+    <div id="xp-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="xp-modal-title">Tambah Poin XP</h3>
+                <button id="close-xp-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="xp-form">
+                <input type="hidden" id="xp-id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-siswa-id">
+                        Siswa <span class="text-red-500">*</span>
+                    </label>
+                    <select id="xp-siswa-id" class="shadcn-select w-full" required>
+                        <option value="">Pilih Siswa</option>
+                        <!-- Options will be populated from API -->
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-jumlah">
+                            Jumlah XP <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="xp-jumlah" class="shadcn-input w-full" required min="1" placeholder="Masukkan jumlah XP">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-level">
+                            Level
+                        </label>
+                        <select id="xp-level" class="shadcn-select w-full">
+                            <option value="">Tentukan Otomatis</option>
+                            <option value="1">Level 1</option>
+                            <option value="2">Level 2</option>
+                            <option value="3">Level 3</option>
+                            <option value="4">Level 4</option>
+                            <option value="5">Level 5</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-aktivitas">
+                            Aktivitas <span class="text-red-500">*</span>
+                        </label>
+                        <select id="xp-aktivitas" class="shadcn-select w-full" required>
+                            <option value="">Pilih Aktivitas</option>
+                            <option value="Tugas">Tugas</option>
+                            <option value="Kuis">Kuis</option>
+                            <option value="Kehadiran">Kehadiran</option>
+                            <option value="Partisipasi">Partisipasi</option>
+                            <option value="Badge">Badge</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-tanggal">
+                            Tanggal <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" id="xp-tanggal" class="shadcn-input w-full" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="xp-deskripsi">
+                        Deskripsi <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="xp-deskripsi" class="shadcn-textarea w-full" rows="3" required placeholder="Masukkan deskripsi aktivitas"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-xp-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-xp-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View XP Modal -->
+    <div id="view-xp-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Detail Poin XP</h3>
+                <button id="close-view-xp-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="text-sm text-gray-500">Siswa</div>
+                        <div id="view-xp-siswa" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">Jumlah XP</div>
+                        <div id="view-xp-jumlah" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="text-sm text-gray-500">Level</div>
+                        <div id="view-xp-level" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">Aktivitas</div>
+                        <div id="view-xp-aktivitas" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Tanggal</div>
+                    <div id="view-xp-tanggal" class="font-medium"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Deskripsi</div>
+                    <div id="view-xp-deskripsi" class="bg-gray-50 p-3 rounded-md mt-1"></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-view-xp-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Tutup
+                </button>
+                <button type="button" id="edit-xp-btn" class="shadcn-btn shadcn-btn-primary mr-2">
+                    Edit
+                </button>
+                <button type="button" id="delete-xp-btn" class="shadcn-btn shadcn-btn-destructive">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete XP Confirmation Modal -->
+    <div id="delete-xp-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-xp-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus catatan XP ini?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-xp-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-xp-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Badge Modal -->
+    <div id="badge-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="badge-modal-title">Tambah Badge Baru</h3>
+                <button id="close-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="badge-form">
+                <input type="hidden" id="badge-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="badge-nama">
+                            Nama Badge <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="badge-nama" class="shadcn-input w-full" required placeholder="Masukkan nama badge">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="badge-xp-reward">
+                            XP Reward <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="badge-xp-reward" class="shadcn-input w-full" required min="0" placeholder="Masukkan jumlah XP reward">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="badge-deskripsi">
+                        Deskripsi <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="badge-deskripsi" class="shadcn-textarea w-full" rows="2" required placeholder="Masukkan deskripsi badge"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="badge-icon-url">
+                        Icon URL <span class="text-red-500">*</span>
+                    </label>
+                    <input type="url" id="badge-icon-url" class="shadcn-input w-full" required placeholder="Masukkan URL icon badge">
+                    <p class="mt-1 text-xs text-gray-500">Gunakan URL gambar dari internet (https://...)</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="badge-syarat">
+                        Syarat Perolehan <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="badge-syarat" class="shadcn-textarea w-full" rows="3" required placeholder="Masukkan syarat untuk mendapatkan badge ini"></textarea>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-badge-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Badge Modal -->
+    <div id="view-badge-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Detail Badge</h3>
+                <button id="close-view-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex justify-center mb-4">
+                    <img id="view-badge-icon" src="" alt="Badge Icon" class="badge-icon">
+                </div>
+                
+                <div class="text-center mb-4">
+                    <h4 id="view-badge-nama" class="text-xl font-bold"></h4>
+                    <div class="mt-1">
+                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                            <span id="view-badge-xp" class="font-semibold"></span> XP
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Deskripsi</div>
+                    <div id="view-badge-deskripsi" class="mt-1"></div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Syarat Perolehan</div>
+                    <div id="view-badge-syarat" class="bg-gray-50 p-3 rounded-md mt-1"></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-view-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Tutup
+                </button>
+                <button type="button" id="edit-badge-btn" class="shadcn-btn shadcn-btn-primary mr-2">
+                    Edit
+                </button>
+                <button type="button" id="delete-badge-btn" class="shadcn-btn shadcn-btn-destructive">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Badge Confirmation Modal -->
+    <div id="delete-badge-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus badge ini?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan dan akan menghapus semua penghargaan terkait badge ini.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-badge-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Student Badge Modal -->
+    <div id="student-badge-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="student-badge-modal-title">Berikan Badge kepada Siswa</h3>
+                <button id="close-student-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="student-badge-form">
+                <input type="hidden" id="student-badge-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="student-badge-siswa-id">
+                            Siswa <span class="text-red-500">*</span>
+                        </label>
+                        <select id="student-badge-siswa-id" class="shadcn-select w-full" required>
+                            <option value="">Pilih Siswa</option>
+                            <!-- Options will be populated from API -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="student-badge-badge-id">
+                            Badge <span class="text-red-500">*</span>
+                        </label>
+                        <select id="student-badge-badge-id" class="shadcn-select w-full" required>
+                            <option value="">Pilih Badge</option>
+                            <!-- Options will be populated from API -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="student-badge-tanggal">
+                        Tanggal Perolehan <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="student-badge-tanggal" class="shadcn-input w-full" required>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button type="button" id="cancel-student-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" id="save-student-badge-btn" class="shadcn-btn shadcn-btn-primary">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Student Badge Modal -->
+    <div id="view-student-badge-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Detail Badge Siswa</h3>
+                <button id="close-view-student-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex justify-center mb-4">
+                    <img id="view-student-badge-icon" src="" alt="Badge Icon" class="badge-icon">
+                </div>
+                
+                <div class="text-center mb-4">
+                    <h4 id="view-student-badge-nama" class="text-xl font-bold"></h4>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="text-sm text-gray-500">Siswa</div>
+                        <div id="view-student-badge-siswa" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">Tanggal Perolehan</div>
+                        <div id="view-student-badge-tanggal" class="font-medium"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-sm text-gray-500">Deskripsi</div>
+                    <div id="view-student-badge-deskripsi" class="mt-1"></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-view-student-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Tutup
+                </button>
+                <button type="button" id="delete-student-badge-btn" class="shadcn-btn shadcn-btn-destructive">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Student Badge Confirmation Modal -->
+    <div id="delete-student-badge-modal" class="modal-overlay hidden">
+        <div class="modal max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Konfirmasi Hapus</h3>
+                <button id="close-delete-student-badge-modal-btn" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <p class="mb-4">Apakah Anda yakin ingin menghapus badge ini dari siswa?</p>
+            <p class="text-red-500 text-sm mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancel-delete-student-badge-btn" class="shadcn-btn shadcn-btn-outline mr-2">
+                    Batal
+                </button>
+                <button type="button" id="confirm-delete-student-badge-btn" class="shadcn-btn bg-red-500 hover:bg-red-600 text-white">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let allStudents = [];
+        let allXP = [];
+        let allBadges = [];
+        let allStudentBadges = [];
+        let currentXpId = null;
+        let currentBadgeId = null;
+        let currentStudentBadgeId = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize layout - this will set up the sidebar and header
+            initLayout();
+            updatePageTitle('Gamifikasi');
+            
+            // Set up tabs
+            setupTabs();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Load data for all tabs
+            loadData();
+        });
+        
+        // Set up tabs
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Hide all tab contents
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show the selected tab content
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // XP Tab
+            document.getElementById('add-xp-btn').addEventListener('click', showAddXpModal);
+            document.getElementById('close-xp-modal-btn').addEventListener('click', hideXpModal);
+            document.getElementById('cancel-xp-btn').addEventListener('click', hideXpModal);
+            document.getElementById('xp-form').addEventListener('submit', handleXpFormSubmit);
+            document.getElementById('filter-xp-btn').addEventListener('click', applyXpFilters);
+            
+            document.getElementById('close-view-xp-modal-btn').addEventListener('click', hideViewXpModal);
+            document.getElementById('close-view-xp-btn').addEventListener('click', hideViewXpModal);
+            document.getElementById('edit-xp-btn').addEventListener('click', editCurrentXp);
+            document.getElementById('delete-xp-btn').addEventListener('click', confirmDeleteXp);
+            
+            document.getElementById('close-delete-xp-modal-btn').addEventListener('click', hideDeleteXpModal);
+            document.getElementById('cancel-delete-xp-btn').addEventListener('click', hideDeleteXpModal);
+            document.getElementById('confirm-delete-xp-btn').addEventListener('click', handleDeleteXp);
+            
+            // Badges Tab
+            document.getElementById('add-badge-btn').addEventListener('click', showAddBadgeModal);
+            document.getElementById('close-badge-modal-btn').addEventListener('click', hideBadgeModal);
+            document.getElementById('cancel-badge-btn').addEventListener('click', hideBadgeModal);
+            document.getElementById('badge-form').addEventListener('submit', handleBadgeFormSubmit);
+            
+            document.getElementById('close-view-badge-modal-btn').addEventListener('click', hideViewBadgeModal);
+            document.getElementById('close-view-badge-btn').addEventListener('click', hideViewBadgeModal);
+            document.getElementById('edit-badge-btn').addEventListener('click', editCurrentBadge);
+            document.getElementById('delete-badge-btn').addEventListener('click', confirmDeleteBadge);
+            
+            document.getElementById('close-delete-badge-modal-btn').addEventListener('click', hideDeleteBadgeModal);
+            document.getElementById('cancel-delete-badge-btn').addEventListener('click', hideDeleteBadgeModal);
+            document.getElementById('confirm-delete-badge-btn').addEventListener('click', handleDeleteBadge);
+            
+            // Student Badges Tab
+            document.getElementById('add-student-badge-btn').addEventListener('click', showAddStudentBadgeModal);
+            document.getElementById('close-student-badge-modal-btn').addEventListener('click', hideStudentBadgeModal);
+            document.getElementById('cancel-student-badge-btn').addEventListener('click', hideStudentBadgeModal);
+            document.getElementById('student-badge-form').addEventListener('submit', handleStudentBadgeFormSubmit);
+            document.getElementById('filter-student-badge-btn').addEventListener('click', applyStudentBadgeFilters);
+            
+            document.getElementById('close-view-student-badge-modal-btn').addEventListener('click', hideViewStudentBadgeModal);
+            document.getElementById('close-view-student-badge-btn').addEventListener('click', hideViewStudentBadgeModal);
+            document.getElementById('delete-student-badge-btn').addEventListener('click', confirmDeleteStudentBadge);
+            
+            document.getElementById('close-delete-student-badge-modal-btn').addEventListener('click', hideDeleteStudentBadgeModal);
+            document.getElementById('cancel-delete-student-badge-btn').addEventListener('click', hideDeleteStudentBadgeModal);
+            document.getElementById('confirm-delete-student-badge-btn').addEventListener('click', handleDeleteStudentBadge);
+        }
+        
+        // Load all necessary data
+        async function loadData() {
+            try {
+                // Load students first as they are needed in multiple places
+                await loadStudents();
+                
+                // Load data for each tab
+                await Promise.all([
+                    loadXP(),
+                    loadBadges(),
+                    loadStudentBadges()
+                ]);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data');
+            }
+        }
+        
+        // API call function following CORS rules with retry logic
+        async function callApi(action, params = {}, maxRetries = 2) {
+            let retries = 0;
+            let useBackupUrl = false;
+            
+            while (retries <= maxRetries) {
+                try {
+                    const currentUrl = useBackupUrl ? BACKUP_API_URL : API_URL;
+                    console.log(`Calling API (${useBackupUrl ? 'BACKUP' : 'PRIMARY'}): ${action} with params:`, params, `(Attempt ${retries + 1}/${maxRetries + 1})`);
+                    
+                    // Create form data with URLSearchParams for proper encoding
+                    const formData = new URLSearchParams();
+                    formData.append('action', action);
+                    
+                    // Add other params, ensuring they are strings
+                    for (const key in params) {
+                        if (params.hasOwnProperty(key)) {
+                            const value = params[key];
+                            formData.append(key, String(value));
+                        }
+                    }
+                    
+                    // Log the exact data being sent for debugging
+                    console.log('Sending data:', formData.toString());
+                    
+                    // Make fetch request - no custom headers to avoid CORS issues
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                    
+                    const response = await fetch(currentUrl, {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal
+                        // Important: No Content-Type header to avoid CORS preflight
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    // Check for HTTP errors
+                    if (!response.ok) {
+                        console.error(`HTTP error: ${response.status}`);
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    // Parse response
+                    const result = await response.json();
+                    console.log('API Response for', action, ':', result);
+                    return result;
+                } catch (error) {
+                    console.error(`API Error (Attempt ${retries + 1}/${maxRetries + 1}):`, error);
+                    
+                    if (error.name === 'AbortError') {
+                        console.error('Request timed out. Retrying...');
+                    } else if (error.message.includes('Failed to fetch')) {
+                        console.error('Network error. Retrying...');
+                    }
+                    
+                    retries++;
+                    
+                    // Try backup URL on second attempt
+                    if (retries === 1 && !useBackupUrl) {
+                        useBackupUrl = true;
+                        console.log('Switching to backup API URL');
+                    }
+                    
+                    // If we've reached max retries, return error
+                    if (retries > maxRetries) {
+                        return { 
+                            success: false, 
+                            error: `After ${maxRetries + 1} attempts: ${error.message}`
+                        };
+                    }
+                    
+                    // Add exponential backoff between retries
+                    const backoffTime = Math.min(1000 * Math.pow(2, retries), 8000);
+                    console.log(`Retrying in ${backoffTime}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffTime));
+                }
+            }
+        }
+        
+        // Helper function to format date (YYYY-MM-DD)
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            
+            return date.toISOString().split('T')[0];
+        }
+        
+        // Helper function to format date for display (DD/MM/YYYY)
+        function formatDateDisplay(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            return date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        // Calculate level based on XP
+        function calculateLevel(xp) {
+            const xpNumber = parseInt(xp, 10);
+            if (isNaN(xpNumber)) return 1;
+            
+            if (xpNumber < 100) return 1;
+            if (xpNumber < 300) return 2;
+            if (xpNumber < 700) return 3;
+            if (xpNumber < 1500) return 4;
+            return 5;
+        }
+        
+        // Get level class for styling
+        function getLevelClass(level) {
+            level = parseInt(level, 10);
+            if (isNaN(level)) level = 1;
+            
+            return `level-badge-${Math.min(Math.max(level, 1), 5)}`;
+        }
+
+        // =============== XP MANAGEMENT FUNCTIONS ===============
+        
+        // Load Students
+        async function loadStudents() {
+            try {
+                const result = await callApi('getSiswa');
+                
+                if (result.success) {
+                    allStudents = result.data || [];
+                    // Load class data to get class names
+                    const classesResult = await callApi('getKelas');
+                    if (classesResult.success) {
+                        // Create a mapping of class IDs to class names
+                        const classMap = {};
+                        classesResult.data.forEach(kelas => {
+                            classMap[kelas.id] = kelas.nama_kelas || kelas.nama || 'Kelas ' + kelas.id;
+                        });
+                        
+                        // Add class name to each student
+                        allStudents.forEach(student => {
+                            if (student.kelas_id && classMap[student.kelas_id]) {
+                                student.kelas_nama = classMap[student.kelas_id];
+                            } else {
+                                student.kelas_nama = 'Tanpa Kelas';
+                            }
+                        });
+                    }
+                    populateStudentDropdowns();
+                } else {
+                    console.error('Failed to load students:', result.error);
+                    showToast('error', 'Gagal memuat data siswa');
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data siswa');
+            }
+        }
+        
+        // Populate student dropdowns
+        function populateStudentDropdowns() {
+            const filterSiswaSelect = document.getElementById('filter-siswa');
+            const filterSiswaBadgeSelect = document.getElementById('filter-siswa-badge');
+            const xpSiswaSelect = document.getElementById('xp-siswa-id');
+            const studentBadgeSiswaSelect = document.getElementById('student-badge-siswa-id');
+            
+            // Sort students by name
+            const sortedStudents = [...allStudents].sort((a, b) => a.nama.localeCompare(b.nama));
+            
+            // Generate options HTML
+            const optionsHtml = sortedStudents.map(student => 
+                `<option value="${student.id}">${student.nama} (${student.kelas_nama || 'Tanpa Kelas'})</option>`
+            ).join('');
+            
+            // Set options to all student dropdowns
+            if (filterSiswaSelect) filterSiswaSelect.innerHTML = '<option value="">Semua Siswa</option>' + optionsHtml;
+            if (filterSiswaBadgeSelect) filterSiswaBadgeSelect.innerHTML = '<option value="">Semua Siswa</option>' + optionsHtml;
+            if (xpSiswaSelect) xpSiswaSelect.innerHTML = '<option value="">Pilih Siswa</option>' + optionsHtml;
+            if (studentBadgeSiswaSelect) studentBadgeSiswaSelect.innerHTML = '<option value="">Pilih Siswa</option>' + optionsHtml;
+        }
+        
+        // Load XP data
+        async function loadXP() {
+            try {
+                document.getElementById('xp-loading').classList.remove('hidden');
+                document.getElementById('xp-list').classList.add('hidden');
+                document.getElementById('xp-summary-loading').classList.remove('hidden');
+                document.getElementById('xp-summary').classList.add('hidden');
+                
+                const result = await callApi('getGamifikasiXP');
+                
+                if (result.success) {
+                    allXP = result.data || [];
+                    renderXpList(allXP);
+                    renderXpSummary(allXP);
+                } else {
+                    console.error('Failed to load XP data:', result.error);
+                    showToast('error', 'Gagal memuat data XP');
+                    renderXpList([]);
+                    renderXpSummary([]);
+                }
+            } catch (error) {
+                console.error('Error loading XP data:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data XP');
+                renderXpList([]);
+                renderXpSummary([]);
+            } finally {
+                document.getElementById('xp-loading').classList.add('hidden');
+                document.getElementById('xp-list').classList.remove('hidden');
+                document.getElementById('xp-summary-loading').classList.add('hidden');
+                document.getElementById('xp-summary').classList.remove('hidden');
+            }
+        }
+        
+        // Render XP list
+        function renderXpList(xpList) {
+            const xpListContainer = document.getElementById('xp-list');
+            
+            if (!xpList || xpList.length === 0) {
+                xpListContainer.innerHTML = `
+                    <div class="shadcn-empty-state">
+                        <svg class="shadcn-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="shadcn-empty-text">Belum ada data XP. Tambahkan poin XP baru!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort XP entries by date (newest first)
+            const sortedXP = [...xpList].sort((a, b) => {
+                return new Date(b.tanggal) - new Date(a.tanggal);
+            });
+            
+            let html = `
+                <div class="shadcn-table-container">
+                    <table class="shadcn-table">
+                        <thead class="shadcn-table-header">
+                            <tr>
+                                <th>Siswa</th>
+                                <th class="text-center">Jumlah XP</th>
+                                <th class="text-center">Level</th>
+                                <th>Aktivitas</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            sortedXP.forEach(xp => {
+                const student = allStudents.find(s => s.id === xp.siswa_id);
+                const studentName = student ? student.nama : 'Unknown';
+                const levelClass = getLevelClass(xp.level);
+                
+                html += `
+                    <tr>
+                        <td class="font-medium">${studentName}</td>
+                        <td class="text-center font-medium">${xp.jumlah_xp}</td>
+                        <td class="text-center">
+                            <div class="flex justify-center">
+                                <span class="level-badge ${levelClass}">${xp.level || 1}</span>
+                            </div>
+                        </td>
+                        <td>${xp.aktivitas}</td>
+                        <td class="text-center">${formatDateDisplay(xp.tanggal)}</td>
+                        <td class="text-center">
+                            <button class="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted transition-colors" 
+                                data-id="${xp.id}" onclick="viewXp('${xp.id}')">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            xpListContainer.innerHTML = html;
+        }
+        
+        // Render XP summary
+        function renderXpSummary(xpList) {
+            const xpSummaryContainer = document.getElementById('xp-summary');
+            
+            // Group XP by student
+            const xpByStudent = {};
+            xpList.forEach(xp => {
+                if (!xpByStudent[xp.siswa_id]) {
+                    xpByStudent[xp.siswa_id] = 0;
+                }
+                xpByStudent[xp.siswa_id] += parseInt(xp.jumlah_xp, 10) || 0;
+            });
+            
+            // Create student summary objects
+            const studentSummaries = [];
+            Object.keys(xpByStudent).forEach(studentId => {
+                const student = allStudents.find(s => s.id === studentId);
+                if (student) {
+                    const totalXp = xpByStudent[studentId];
+                    const level = calculateLevel(totalXp);
+                    studentSummaries.push({
+                        id: studentId,
+                        name: student.nama,
+                        class: student.kelas_id || '-',
+                        totalXp,
+                        level
+                    });
+                }
+            });
+            
+            // Sort by total XP (highest first)
+            studentSummaries.sort((a, b) => b.totalXp - a.totalXp);
+            
+            if (studentSummaries.length === 0) {
+                xpSummaryContainer.innerHTML = `
+                    <div class="shadcn-empty-state">
+                        <p class="shadcn-empty-text">Belum ada data XP yang tersedia.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="shadcn-table-container">
+                    <table class="shadcn-table">
+                        <thead class="shadcn-table-header">
+                            <tr>
+                                <th>Peringkat</th>
+                                <th>Siswa</th>
+                                <th class="text-center">Total XP</th>
+                                <th class="text-center">Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            studentSummaries.forEach((summary, index) => {
+                const levelClass = getLevelClass(summary.level);
+                
+                html += `
+                    <tr>
+                        <td class="font-medium">${index + 1}</td>
+                        <td>${summary.name}</td>
+                        <td class="text-center font-medium">${summary.totalXp}</td>
+                        <td class="text-center">
+                            <div class="flex justify-center">
+                                <span class="level-badge ${levelClass}">${summary.level}</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            xpSummaryContainer.innerHTML = html;
+        }
+        
+        // Apply XP filters
+        function applyXpFilters() {
+            const siswaId = document.getElementById('filter-siswa').value;
+            const aktivitas = document.getElementById('filter-aktivitas').value;
+            
+            const filteredXP = allXP.filter(xp => {
+                if (siswaId && xp.siswa_id !== siswaId) return false;
+                if (aktivitas && xp.aktivitas !== aktivitas) return false;
+                return true;
+            });
+            
+            renderXpList(filteredXP);
+        }
+        
+        // Show add XP modal
+        function showAddXpModal() {
+            // Set default values
+            document.getElementById('xp-modal-title').textContent = 'Tambah Poin XP';
+            document.getElementById('xp-id').value = '';
+            document.getElementById('xp-siswa-id').value = '';
+            document.getElementById('xp-jumlah').value = '';
+            document.getElementById('xp-level').value = '';
+            document.getElementById('xp-aktivitas').value = '';
+            document.getElementById('xp-tanggal').value = formatDate(new Date());
+            document.getElementById('xp-deskripsi').value = '';
+            
+            // Show modal
+            document.getElementById('xp-modal').classList.remove('hidden');
+        }
+        
+        // Hide XP modal
+        function hideXpModal() {
+            document.getElementById('xp-modal').classList.add('hidden');
+        }
+        
+        // View XP details
+        function viewXp(id) {
+            currentXpId = id;
+            
+            const xp = allXP.find(x => x.id === id);
+            if (!xp) {
+                showToast('error', 'Data XP tidak ditemukan');
+                return;
+            }
+            
+            const student = allStudents.find(s => s.id === xp.siswa_id);
+            const studentName = student ? student.nama : 'Unknown';
+            
+            // Set XP details in modal
+            document.getElementById('view-xp-siswa').textContent = studentName;
+            document.getElementById('view-xp-jumlah').textContent = xp.jumlah_xp;
+            document.getElementById('view-xp-level').textContent = xp.level || '1';
+            document.getElementById('view-xp-aktivitas').textContent = xp.aktivitas || '-';
+            document.getElementById('view-xp-tanggal').textContent = formatDateDisplay(xp.tanggal);
+            document.getElementById('view-xp-deskripsi').textContent = xp.deskripsi || '-';
+            
+            // Show modal
+            document.getElementById('view-xp-modal').classList.remove('hidden');
+        }
+        
+        // Hide view XP modal
+        function hideViewXpModal(keepId = false) {
+            document.getElementById('view-xp-modal').classList.add('hidden');
+            if (!keepId) {
+                currentXpId = null;
+            }
+        }
+        
+        // Edit current XP
+        function editCurrentXp() {
+            if (!currentXpId) return;
+            
+            const xp = allXP.find(x => x.id === currentXpId);
+            if (!xp) {
+                showToast('error', 'Data XP tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the ID
+            hideViewXpModal(true);
+            
+            // Set XP data in form
+            document.getElementById('xp-modal-title').textContent = 'Edit Poin XP';
+            document.getElementById('xp-id').value = xp.id;
+            document.getElementById('xp-siswa-id').value = xp.siswa_id || '';
+            document.getElementById('xp-jumlah').value = xp.jumlah_xp || '';
+            document.getElementById('xp-level').value = xp.level || '';
+            document.getElementById('xp-aktivitas').value = xp.aktivitas || '';
+            document.getElementById('xp-tanggal').value = formatDate(xp.tanggal);
+            document.getElementById('xp-deskripsi').value = xp.deskripsi || '';
+            
+            // Show modal
+            document.getElementById('xp-modal').classList.remove('hidden');
+        }
+        
+        // Confirm delete XP
+        function confirmDeleteXp() {
+            if (!currentXpId) return;
+            
+            // Hide view modal but keep the ID
+            hideViewXpModal(true);
+            
+            // Show delete modal
+            document.getElementById('delete-xp-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete XP modal
+        function hideDeleteXpModal() {
+            document.getElementById('delete-xp-modal').classList.add('hidden');
+        }
+        
+        // Helper function to set loading state on buttons
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                // Store original text
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Menyimpan...';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                // Restore original text
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        }
+        
+        // Handle XP form submission
+        async function handleXpFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const id = document.getElementById('xp-id').value;
+            const siswa_id = document.getElementById('xp-siswa-id').value;
+            const jumlah_xp = document.getElementById('xp-jumlah').value;
+            const level = document.getElementById('xp-level').value || calculateLevel(jumlah_xp);
+            const aktivitas = document.getElementById('xp-aktivitas').value;
+            const tanggal = document.getElementById('xp-tanggal').value;
+            const deskripsi = document.getElementById('xp-deskripsi').value;
+            
+            // Simple validation
+            if (!siswa_id || !jumlah_xp || !aktivitas || !tanggal || !deskripsi) {
+                showToast('error', 'Silakan lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            // Prepare XP data
+            const xpData = {
+                siswa_id,
+                jumlah_xp,
+                level,
+                aktivitas,
+                tanggal,
+                deskripsi
+            };
+            
+            const saveButton = document.getElementById('save-xp-btn');
+            
+            try {
+                // Disable save button and show loading state
+                setButtonLoading(saveButton, true);
+                
+                // Determine if this is an update or a new XP
+                const action = id ? 'updateGamifikasiXP' : 'createGamifikasiXP';
+                
+                // Add ID if updating
+                if (id) {
+                    xpData.id = id;
+                }
+                
+                // Call API
+                const result = await callApi(action, xpData);
+                
+                if (result.success) {
+                    // Hide modal
+                    hideXpModal();
+                    
+                    // Update local data and refresh list
+                    await loadXP();
+                    
+                    // Show success message
+                    showToast('success', id ? 'Poin XP berhasil diperbarui' : 'Poin XP baru berhasil ditambahkan');
+                } else {
+                    showToast('error', `Gagal ${id ? 'memperbarui' : 'menambahkan'} poin XP: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving XP:', error);
+                showToast('error', `Terjadi kesalahan saat ${id ? 'memperbarui' : 'menambahkan'} poin XP: ${error.message}`);
+            } finally {
+                // Re-enable save button and hide loading state
+                setButtonLoading(saveButton, false);
+            }
+        }
+        
+        // Delete XP
+        async function handleDeleteXp() {
+            if (!currentXpId) {
+                hideDeleteXpModal();
+                return;
+            }
+            
+            const deleteButton = document.getElementById('confirm-delete-xp-btn');
+            
+            try {
+                // Disable delete button and show loading state
+                setButtonLoading(deleteButton, true);
+                
+                // Call API to delete XP
+                const result = await callApi('deleteGamifikasiXP', { id: currentXpId });
+                
+                if (result.success) {
+                    // Hide delete modal
+                    hideDeleteXpModal();
+                    
+                    // Refresh XP data
+                    await loadXP();
+                    
+                    // Show success message
+                    showToast('success', 'Poin XP berhasil dihapus');
+                    
+                    // Reset current XP ID
+                    currentXpId = null;
+                } else {
+                    showToast('error', `Gagal menghapus poin XP: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting XP:', error);
+                showToast('error', `Terjadi kesalahan saat menghapus poin XP: ${error.message}`);
+            } finally {
+                // Re-enable delete button and hide loading state
+                setButtonLoading(deleteButton, false);
+            }
+        }
+
+        // =============== BADGE MANAGEMENT FUNCTIONS ===============
+        
+        // Load Badges
+        async function loadBadges() {
+            try {
+                document.getElementById('badges-loading').classList.remove('hidden');
+                document.getElementById('badges-list').classList.add('hidden');
+                
+                const result = await callApi('getGamifikasiBadge');
+                
+                if (result.success) {
+                    allBadges = result.data || [];
+                    console.log('Loaded badges:', allBadges);
+                    renderBadgesList(allBadges);
+                    populateBadgeDropdowns();
+                } else {
+                    console.error('Failed to load badges:', result.error);
+                    showToast('error', 'Gagal memuat data badge');
+                    renderBadgesList([]);
+                }
+            } catch (error) {
+                console.error('Error loading badges:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data badge');
+                renderBadgesList([]);
+            } finally {
+                document.getElementById('badges-loading').classList.add('hidden');
+                document.getElementById('badges-list').classList.remove('hidden');
+            }
+        }
+        
+        // Populate badge dropdowns
+        function populateBadgeDropdowns() {
+            const badgeSelect = document.getElementById('student-badge-badge-id');
+            if (!badgeSelect) return;
+            
+            // Sort badges by name
+            const sortedBadges = [...allBadges].sort((a, b) => a.nama_badge.localeCompare(b.nama_badge));
+            
+            // Generate options HTML
+            const optionsHtml = sortedBadges.map(badge => 
+                `<option value="${badge.id}">${badge.nama_badge}</option>`
+            ).join('');
+            
+            // Set options
+            badgeSelect.innerHTML = '<option value="">Pilih Badge</option>' + optionsHtml;
+        }
+        
+        // Render badges list
+        function renderBadgesList(badges) {
+            const badgesListContainer = document.getElementById('badges-list');
+            
+            if (!badges || badges.length === 0) {
+                badgesListContainer.innerHTML = `
+                    <div class="shadcn-empty-state">
+                        <svg class="shadcn-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="shadcn-empty-text">Belum ada badge. Tambahkan badge baru!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            badges.forEach(badge => {
+                html += `
+                    <div class="bg-background rounded-lg overflow-hidden border border-border shadow-sm hover:shadow transition-shadow duration-200 cursor-pointer" onclick="viewBadge('${badge.id}')">
+                        <div class="p-4 flex items-center justify-center">
+                            <img src="${badge.icon_url || 'https://via.placeholder.com/64?text=Badge'}" alt="${badge.nama_badge}" 
+                                class="badge-icon" onerror="this.src='https://via.placeholder.com/64?text=Error'">
+                        </div>
+                        <div class="p-4 border-t border-border">
+                            <h4 class="font-semibold text-center">${badge.nama_badge}</h4>
+                            <div class="mt-2 text-center">
+                                <span class="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                                    <span class="font-semibold">${badge.xp_reward}</span> XP
+                                </span>
+                            </div>
+                            <p class="mt-3 text-xs text-muted-foreground line-clamp-2">${badge.deskripsi}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            badgesListContainer.innerHTML = html;
+        }
+        
+        // Show add badge modal
+        function showAddBadgeModal() {
+            // Set default values
+            document.getElementById('badge-modal-title').textContent = 'Tambah Badge Baru';
+            document.getElementById('badge-id').value = '';
+            document.getElementById('badge-nama').value = '';
+            document.getElementById('badge-xp-reward').value = '';
+            document.getElementById('badge-deskripsi').value = '';
+            document.getElementById('badge-icon-url').value = '';
+            document.getElementById('badge-syarat').value = '';
+            
+            // Show modal
+            document.getElementById('badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide badge modal
+        function hideBadgeModal() {
+            document.getElementById('badge-modal').classList.add('hidden');
+        }
+        
+        // View badge details
+        function viewBadge(id) {
+            currentBadgeId = id;
+            
+            const badge = allBadges.find(b => b.id === id);
+            if (!badge) {
+                showToast('error', 'Badge tidak ditemukan');
+                return;
+            }
+            
+            // Set badge details in modal
+            document.getElementById('view-badge-icon').src = badge.icon_url || 'https://via.placeholder.com/64?text=Badge';
+            document.getElementById('view-badge-nama').textContent = badge.nama_badge;
+            document.getElementById('view-badge-xp').textContent = badge.xp_reward;
+            document.getElementById('view-badge-deskripsi').textContent = badge.deskripsi || '-';
+            document.getElementById('view-badge-syarat').textContent = badge.syarat_perolehan || '-';
+            
+            // Handle image error
+            document.getElementById('view-badge-icon').onerror = function() {
+                this.src = 'https://via.placeholder.com/64?text=Error';
+            };
+            
+            // Show modal
+            document.getElementById('view-badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide view badge modal
+        function hideViewBadgeModal(keepId = false) {
+            document.getElementById('view-badge-modal').classList.add('hidden');
+            if (!keepId) {
+                currentBadgeId = null;
+            }
+        }
+        
+        // Edit current badge
+        function editCurrentBadge() {
+            if (!currentBadgeId) return;
+            
+            const badge = allBadges.find(b => b.id === currentBadgeId);
+            if (!badge) {
+                showToast('error', 'Badge tidak ditemukan');
+                return;
+            }
+            
+            // Hide view modal but keep the ID
+            hideViewBadgeModal(true);
+            
+            // Set badge data in form
+            document.getElementById('badge-modal-title').textContent = 'Edit Badge';
+            document.getElementById('badge-id').value = badge.id;
+            document.getElementById('badge-nama').value = badge.nama_badge || '';
+            document.getElementById('badge-xp-reward').value = badge.xp_reward || '';
+            document.getElementById('badge-deskripsi').value = badge.deskripsi || '';
+            document.getElementById('badge-icon-url').value = badge.icon_url || '';
+            document.getElementById('badge-syarat').value = badge.syarat_perolehan || '';
+            
+            // Show modal
+            document.getElementById('badge-modal').classList.remove('hidden');
+        }
+        
+        // Confirm delete badge
+        function confirmDeleteBadge() {
+            if (!currentBadgeId) return;
+            
+            // Hide view modal but keep the ID
+            hideViewBadgeModal(true);
+            
+            // Show delete modal
+            document.getElementById('delete-badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete badge modal
+        function hideDeleteBadgeModal() {
+            document.getElementById('delete-badge-modal').classList.add('hidden');
+        }
+        
+        // Handle badge form submission
+        async function handleBadgeFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const id = document.getElementById('badge-id').value;
+            const nama_badge = document.getElementById('badge-nama').value;
+            const xp_reward = document.getElementById('badge-xp-reward').value;
+            const deskripsi = document.getElementById('badge-deskripsi').value;
+            const icon_url = document.getElementById('badge-icon-url').value;
+            const syarat_perolehan = document.getElementById('badge-syarat').value;
+            
+            // Simple validation
+            if (!nama_badge || !xp_reward || !deskripsi || !icon_url || !syarat_perolehan) {
+                showToast('error', 'Silakan lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            // Prepare badge data
+            const badgeData = {
+                nama_badge,
+                xp_reward,
+                deskripsi,
+                icon_url,
+                syarat_perolehan
+            };
+            
+            const saveButton = document.getElementById('save-badge-btn');
+            
+            try {
+                // Disable save button and show loading state
+                setButtonLoading(saveButton, true);
+                
+                // Determine if this is an update or a new badge
+                const action = id ? 'updateGamifikasiBadge' : 'createGamifikasiBadge';
+                
+                // Add ID if updating
+                if (id) {
+                    badgeData.id = id;
+                }
+                
+                // Call API
+                const result = await callApi(action, badgeData);
+                
+                if (result.success) {
+                    // Hide modal
+                    hideBadgeModal();
+                    
+                    // Update local data and refresh list
+                    await loadBadges();
+                    
+                    // Show success message
+                    showToast('success', id ? 'Badge berhasil diperbarui' : 'Badge baru berhasil ditambahkan');
+                } else {
+                    showToast('error', `Gagal ${id ? 'memperbarui' : 'menambahkan'} badge: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving badge:', error);
+                showToast('error', `Terjadi kesalahan saat ${id ? 'memperbarui' : 'menambahkan'} badge: ${error.message}`);
+            } finally {
+                // Re-enable save button and hide loading state
+                setButtonLoading(saveButton, false);
+            }
+        }
+        
+        // Delete badge
+        async function handleDeleteBadge() {
+            if (!currentBadgeId) {
+                hideDeleteBadgeModal();
+                return;
+            }
+            
+            const deleteButton = document.getElementById('confirm-delete-badge-btn');
+            
+            try {
+                // Disable delete button and show loading state
+                setButtonLoading(deleteButton, true);
+                
+                // Call API to delete badge
+                const result = await callApi('deleteGamifikasiBadge', { id: currentBadgeId });
+                
+                if (result.success) {
+                    // Hide delete modal
+                    hideDeleteBadgeModal();
+                    
+                    // Refresh badges data
+                    await loadBadges();
+                    
+                    // Show success message
+                    showToast('success', 'Badge berhasil dihapus');
+                    
+                    // Reset current badge ID
+                    currentBadgeId = null;
+                } else {
+                    showToast('error', `Gagal menghapus badge: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting badge:', error);
+                showToast('error', `Terjadi kesalahan saat menghapus badge: ${error.message}`);
+            } finally {
+                // Re-enable delete button and hide loading state
+                setButtonLoading(deleteButton, false);
+            }
+        }
+
+        // =============== STUDENT BADGE MANAGEMENT FUNCTIONS ===============
+        
+        // Load Student Badges
+        async function loadStudentBadges() {
+            try {
+                document.getElementById('student-badges-loading').classList.remove('hidden');
+                document.getElementById('student-badges-list').classList.add('hidden');
+                
+                const result = await callApi('getSiswaBadge');
+                
+                if (result.success) {
+                    allStudentBadges = result.data || [];
+                    renderStudentBadgesList(allStudentBadges);
+                } else {
+                    console.error('Failed to load student badges:', result.error);
+                    showToast('error', 'Gagal memuat data badge siswa');
+                    renderStudentBadgesList([]);
+                }
+            } catch (error) {
+                console.error('Error loading student badges:', error);
+                showToast('error', 'Terjadi kesalahan saat memuat data badge siswa');
+                renderStudentBadgesList([]);
+            } finally {
+                document.getElementById('student-badges-loading').classList.add('hidden');
+                document.getElementById('student-badges-list').classList.remove('hidden');
+            }
+        }
+        
+        // Render student badges list
+        function renderStudentBadgesList(studentBadges) {
+            const studentBadgesListContainer = document.getElementById('student-badges-list');
+            
+            if (!studentBadges || studentBadges.length === 0) {
+                studentBadgesListContainer.innerHTML = `
+                    <div class="shadcn-empty-state">
+                        <svg class="shadcn-empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="shadcn-empty-text">Belum ada badge yang diberikan kepada siswa. Berikan badge kepada siswa!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group student badges by student
+            const badgesByStudent = {};
+            
+            studentBadges.forEach(badge => {
+                if (!badgesByStudent[badge.siswa_id]) {
+                    badgesByStudent[badge.siswa_id] = [];
+                }
+                
+                badgesByStudent[badge.siswa_id].push(badge);
+            });
+            
+            let html = '';
+            
+            // For each student with badges
+            for (const studentId in badgesByStudent) {
+                const student = allStudents.find(s => s.id === studentId);
+                if (!student) continue;
+                
+                const studentBadges = badgesByStudent[studentId];
+                
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-3">${student.nama}</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                `;
+                
+                // Sort badges by date (newest first)
+                studentBadges.sort((a, b) => new Date(b.tanggal_perolehan) - new Date(a.tanggal_perolehan));
+                
+                // For each badge of this student
+                studentBadges.forEach(studentBadge => {
+                    const badge = allBadges.find(b => b.id === studentBadge.badge_id);
+                    if (!badge) return;
+                    
+                    html += `
+                        <div class="bg-background rounded-lg overflow-hidden border border-border shadow-sm hover:shadow transition-shadow duration-200 cursor-pointer" 
+                            onclick="viewStudentBadge('${studentBadge.id}')">
+                            <div class="p-3 flex items-center justify-center">
+                                <img src="${badge.icon_url || 'https://via.placeholder.com/64?text=Badge'}" alt="${badge.nama_badge}" 
+                                    class="badge-icon h-12 w-12" onerror="this.src='https://via.placeholder.com/64?text=Error'">
+                            </div>
+                            <div class="p-3 border-t border-border">
+                                <h5 class="font-semibold text-center">${badge.nama_badge}</h5>
+                                <p class="text-xs text-muted-foreground text-center mt-1">
+                                    ${formatDateDisplay(studentBadge.tanggal_perolehan)}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            studentBadgesListContainer.innerHTML = html;
+        }
+        
+        // Apply student badge filters
+        function applyStudentBadgeFilters() {
+            const siswaId = document.getElementById('filter-siswa-badge').value;
+            
+            if (!siswaId) {
+                // If no filter, show all
+                renderStudentBadgesList(allStudentBadges);
+                return;
+            }
+            
+            // Filter badges by student ID
+            const filteredBadges = allStudentBadges.filter(badge => badge.siswa_id === siswaId);
+            renderStudentBadgesList(filteredBadges);
+        }
+        
+        // Show add student badge modal
+        function showAddStudentBadgeModal() {
+            // Set default values
+            document.getElementById('student-badge-modal-title').textContent = 'Berikan Badge kepada Siswa';
+            document.getElementById('student-badge-id').value = '';
+            document.getElementById('student-badge-siswa-id').value = '';
+            document.getElementById('student-badge-badge-id').value = '';
+            document.getElementById('student-badge-tanggal').value = formatDate(new Date());
+            
+            // Show modal
+            document.getElementById('student-badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide student badge modal
+        function hideStudentBadgeModal() {
+            document.getElementById('student-badge-modal').classList.add('hidden');
+        }
+        
+        // View student badge details
+        function viewStudentBadge(id) {
+            currentStudentBadgeId = id;
+            
+            const studentBadge = allStudentBadges.find(sb => sb.id === id);
+            if (!studentBadge) {
+                showToast('error', 'Detail badge siswa tidak ditemukan');
+                return;
+            }
+            
+            const student = allStudents.find(s => s.id === studentBadge.siswa_id);
+            const badge = allBadges.find(b => b.id === studentBadge.badge_id);
+            
+            if (!student || !badge) {
+                showToast('error', 'Data terkait badge siswa tidak ditemukan');
+                return;
+            }
+            
+            // Set student badge details in modal
+            document.getElementById('view-student-badge-icon').src = badge.icon_url || 'https://via.placeholder.com/64?text=Badge';
+            document.getElementById('view-student-badge-nama').textContent = badge.nama_badge;
+            document.getElementById('view-student-badge-siswa').textContent = student.nama;
+            document.getElementById('view-student-badge-tanggal').textContent = formatDateDisplay(studentBadge.tanggal_perolehan);
+            document.getElementById('view-student-badge-deskripsi').textContent = badge.deskripsi || '-';
+            
+            // Handle image error
+            document.getElementById('view-student-badge-icon').onerror = function() {
+                this.src = 'https://via.placeholder.com/64?text=Error';
+            };
+            
+            // Show modal
+            document.getElementById('view-student-badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide view student badge modal
+        function hideViewStudentBadgeModal(keepId = false) {
+            document.getElementById('view-student-badge-modal').classList.add('hidden');
+            if (!keepId) {
+                currentStudentBadgeId = null;
+            }
+        }
+        
+        // Confirm delete student badge
+        function confirmDeleteStudentBadge() {
+            if (!currentStudentBadgeId) return;
+            
+            // Hide view modal but keep the ID
+            hideViewStudentBadgeModal(true);
+            
+            // Show delete modal
+            document.getElementById('delete-student-badge-modal').classList.remove('hidden');
+        }
+        
+        // Hide delete student badge modal
+        function hideDeleteStudentBadgeModal() {
+            document.getElementById('delete-student-badge-modal').classList.add('hidden');
+        }
+        
+        // Handle student badge form submission
+        async function handleStudentBadgeFormSubmit(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const id = document.getElementById('student-badge-id').value;
+            const siswa_id = document.getElementById('student-badge-siswa-id').value;
+            const badge_id = document.getElementById('student-badge-badge-id').value;
+            const tanggal_perolehan = document.getElementById('student-badge-tanggal').value;
+            
+            // Simple validation
+            if (!siswa_id || !badge_id || !tanggal_perolehan) {
+                showToast('error', 'Silakan lengkapi semua field yang wajib diisi');
+                return;
+            }
+            
+            // Prepare student badge data
+            const studentBadgeData = {
+                siswa_id,
+                badge_id,
+                tanggal_perolehan
+            };
+            
+            const saveButton = document.getElementById('save-student-badge-btn');
+            
+            try {
+                // Disable save button and show loading state
+                setButtonLoading(saveButton, true);
+                
+                // Get the badge to determine XP reward
+                const badge = allBadges.find(b => b.id === badge_id);
+                let xpReward = 0;
+                if (badge && badge.xp_reward) {
+                    xpReward = parseInt(badge.xp_reward, 10);
+                }
+                
+                // Determine if this is an update or a new student badge
+                const action = id ? 'updateSiswaBadge' : 'createSiswaBadge';
+                
+                // Add ID if updating
+                if (id) {
+                    studentBadgeData.id = id;
+                }
+                
+                // Call API
+                const result = await callApi(action, studentBadgeData);
+                
+                if (result.success) {
+                    // If creating a new badge assignment and there's XP reward, add XP for the student
+                    if (!id && xpReward > 0) {
+                        // Prepare XP data for badge reward
+                        const xpData = {
+                            siswa_id,
+                            jumlah_xp: xpReward,
+                            aktivitas: 'Badge',
+                            tanggal: tanggal_perolehan,
+                            deskripsi: `Perolehan badge "${badge.nama_badge}"`
+                        };
+                        
+                        // Call API to add XP
+                        await callApi('createGamifikasiXP', xpData);
+                    }
+                    
+                    // Hide modal
+                    hideStudentBadgeModal();
+                    
+                    // Update local data and refresh list
+                    await Promise.all([
+                        loadStudentBadges(),
+                        loadXP() // Refresh XP data in case XP reward was added
+                    ]);
+                    
+                    // Show success message
+                    showToast('success', id ? 'Badge siswa berhasil diperbarui' : 'Badge baru berhasil diberikan kepada siswa');
+                } else {
+                    showToast('error', `Gagal ${id ? 'memperbarui' : 'memberikan'} badge siswa: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error saving student badge:', error);
+                showToast('error', `Terjadi kesalahan saat ${id ? 'memperbarui' : 'memberikan'} badge siswa: ${error.message}`);
+            } finally {
+                // Re-enable save button and hide loading state
+                setButtonLoading(saveButton, false);
+            }
+        }
+        
+        // Delete student badge
+        async function handleDeleteStudentBadge() {
+            if (!currentStudentBadgeId) {
+                hideDeleteStudentBadgeModal();
+                return;
+            }
+            
+            const deleteButton = document.getElementById('confirm-delete-student-badge-btn');
+            
+            try {
+                // Disable delete button and show loading state
+                setButtonLoading(deleteButton, true);
+                
+                // Call API to delete student badge
+                const result = await callApi('deleteSiswaBadge', { id: currentStudentBadgeId });
+                
+                if (result.success) {
+                    // Hide delete modal
+                    hideDeleteStudentBadgeModal();
+                    
+                    // Refresh student badges data
+                    await loadStudentBadges();
+                    
+                    // Show success message
+                    showToast('success', 'Badge siswa berhasil dihapus');
+                    
+                    // Reset current student badge ID
+                    currentStudentBadgeId = null;
+                } else {
+                    showToast('error', `Gagal menghapus badge siswa: ${result.error || 'Kesalahan tidak diketahui'}`);
+                }
+            } catch (error) {
+                console.error('Error deleting student badge:', error);
+                showToast('error', `Terjadi kesalahan saat menghapus badge siswa: ${error.message}`);
+            } finally {
+                // Re-enable delete button and hide loading state
+                setButtonLoading(deleteButton, false);
+            }
+        }
+        
+        // Initialize the viewXp function globally since it's called from inline event handlers
+        window.viewXp = viewXp;
+        
+        // Initialize the viewBadge function globally
+        window.viewBadge = viewBadge;
+        
+        // Initialize the viewStudentBadge function globally
+        window.viewStudentBadge = viewStudentBadge;
+    </script>
+</body>
+</html> 
